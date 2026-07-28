@@ -3,6 +3,8 @@ import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../context/AuthContext'
 import { listCuentas, createCuenta } from '../../services/cuentas'
 import { listCategorias, createCategoria } from '../../services/categorias'
+import { listClientes } from '../../services/clientes'
+import { listProveedores } from '../../services/proveedores'
 import {
   listMovimientos,
   createMovimiento,
@@ -22,6 +24,8 @@ const FORM_INICIAL = {
   fecha: HOY,
   cuentaId: '',
   categoriaId: '',
+  clienteId: '',
+  proveedorId: '',
   estado: 'pendiente',
   moneda: 'ARS',
 }
@@ -30,6 +34,8 @@ export default function Movimientos() {
   const { user } = useAuth()
   const [cuentas, setCuentas] = useState([])
   const [categorias, setCategorias] = useState([])
+  const [clientes, setClientes] = useState([])
+  const [proveedores, setProveedores] = useState([])
   const [movimientos, setMovimientos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -50,13 +56,17 @@ export default function Movimientos() {
     setLoading(true)
     setError('')
     try {
-      const [c, cat, mov] = await Promise.all([
+      const [c, cat, cli, prov, mov] = await Promise.all([
         listCuentas(),
         listCategorias(),
+        listClientes(),
+        listProveedores(),
         listMovimientos(),
       ])
       setCuentas(c)
       setCategorias(cat)
+      setClientes(cli)
+      setProveedores(prov)
       setMovimientos(mov)
       setForm((f) => ({
         ...f,
@@ -108,6 +118,8 @@ export default function Movimientos() {
         userId: user.id,
         cuentaId: form.cuentaId || null,
         categoriaId: form.categoriaId || null,
+        clienteId: form.clienteId || null,
+        proveedorId: form.proveedorId || null,
         tipo: form.tipo,
         descripcion: form.descripcion,
         monto,
@@ -216,7 +228,15 @@ export default function Movimientos() {
                 <button
                   type="button"
                   key={tipo}
-                  onClick={() => setForm((f) => ({ ...f, tipo, categoriaId: '' }))}
+                  onClick={() =>
+                    setForm((f) => ({
+                      ...f,
+                      tipo,
+                      categoriaId: '',
+                      clienteId: '',
+                      proveedorId: '',
+                    }))
+                  }
                   className={`flex-1 rounded-md py-1.5 text-sm font-medium capitalize transition ${
                     form.tipo === tipo
                       ? tipo === 'ingreso'
@@ -430,6 +450,46 @@ export default function Movimientos() {
               )}
             </div>
 
+            {form.tipo === 'ingreso' ? (
+              <div>
+                <label className="label-field" htmlFor="cliente">
+                  Cliente
+                </label>
+                <select
+                  id="cliente"
+                  className="input-field"
+                  value={form.clienteId}
+                  onChange={(e) => setForm((f) => ({ ...f, clienteId: e.target.value }))}
+                >
+                  <option value="">Sin cliente</option>
+                  {clientes.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {c.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            ) : (
+              <div>
+                <label className="label-field" htmlFor="proveedor">
+                  Proveedor
+                </label>
+                <select
+                  id="proveedor"
+                  className="input-field"
+                  value={form.proveedorId}
+                  onChange={(e) => setForm((f) => ({ ...f, proveedorId: e.target.value }))}
+                >
+                  <option value="">Sin proveedor</option>
+                  {proveedores.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.nombre}
+                    </option>
+                  ))}
+                </select>
+              </div>
+            )}
+
             <div>
               <label className="label-field" htmlFor="estado">
                 Estado
@@ -503,6 +563,8 @@ export default function Movimientos() {
                         {formatDate(m.fecha)}
                         {m.categoria?.nombre ? ` · ${m.categoria.nombre}` : ''}
                         {m.cuenta?.nombre ? ` · ${m.cuenta.nombre}` : ''}
+                        {m.cliente?.nombre ? ` · ${m.cliente.nombre}` : ''}
+                        {m.proveedor?.nombre ? ` · ${m.proveedor.nombre}` : ''}
                       </p>
                       <button
                         onClick={() => toggleEstado(m)}

@@ -4,7 +4,7 @@ PWA de gestión de flujo de caja para pequeñas empresas, profesionales y
 comercios. Objetivo: que cualquier usuario sepa en menos de 10 segundos si
 tendrá dinero suficiente para afrontar sus próximos pagos.
 
-## Estado actual (Sprint 1 + Sprint 2)
+## Estado actual (Sprint 1 + Sprint 2 + Sprint 3)
 
 Implementado hasta ahora:
 
@@ -32,8 +32,20 @@ Implementado hasta ahora:
 Cada usuario nuevo arranca con una cuenta "Caja" (en pesos) y categorías
 básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
 
-Páginas "próximamente" para Clientes, Proveedores, Simulador y
-Configuración (Sprints 3-4).
+**Sprint 3**
+- Clientes y Proveedores: alta/edición/baja, con "pendiente de cobro/pago"
+  calculado agregando los movimientos que tenés vinculados a cada uno
+  (por moneda), sin necesidad de recalcular nada a mano
+  (`supabase/schema_sprint3.sql`)
+- Movimientos ahora puede asociar un ingreso a un cliente o un egreso a
+  un proveedor (selector opcional en el formulario)
+- Simulador financiero (`src/utils/simulador.js`): 5 escenarios —cobro
+  retrasado, compra extraordinaria, nuevo préstamo, incremento de ventas,
+  incremento de gastos— que reproyectan el flujo de caja en memoria (sin
+  tocar tus datos reales) y lo comparan contra el flujo actual en un
+  mismo gráfico, con el saldo mínimo proyectado de cada escenario
+
+Página "próximamente" para Configuración (Sprint 4).
 
 ## Identidad visual
 
@@ -96,6 +108,8 @@ npm run dev
      cuenta "Caja" y categorías básicas para cada usuario nuevo.
    - `supabase/schema_sprint2_moneda.sql` — columna `moneda` (ARS/USD) en
      `cuentas` y `movimientos`.
+   - `supabase/schema_sprint3.sql` — tablas `clientes` y `proveedores`, y
+     las columnas `cliente_id`/`proveedor_id` en `movimientos`.
 4. En **Authentication → URL Configuration**, configurá el **Site URL**
    con el dominio real donde publiques la app (por ejemplo tu sitio de
    Netlify) y agregalo también a **Redirect URLs**; si no, los links de
@@ -114,5 +128,4 @@ npm run preview
 
 ## Próximos pasos (roadmap)
 
-- **Sprint 3:** Clientes, Proveedores, Simulador financiero
 - **Sprint 4:** Plan Platinum (IA financiera, reportes avanzados, integración Odoo y Mercado Pago, usuarios y permisos)
