@@ -4,20 +4,32 @@ PWA de gestión de flujo de caja para pequeñas empresas, profesionales y
 comercios. Objetivo: que cualquier usuario sepa en menos de 10 segundos si
 tendrá dinero suficiente para afrontar sus próximos pagos.
 
-## Estado actual (Sprint 1)
+## Estado actual (Sprint 1 + Sprint 2)
 
-Implementado en esta etapa:
+Implementado hasta ahora:
 
+**Sprint 1**
 - Landing con propuesta de valor, funciones y planes (Starter / Platinum)
 - Registro e inicio de sesión con Supabase Auth
-- Dashboard con saldo disponible/proyectado, cobros/pagos pendientes,
-  próximos vencimientos, semáforo financiero y gráfico de proyección
-  (datos de ejemplo en `src/database/mockData.js`, a reemplazar en el
-  Sprint 2 por datos reales de Supabase)
 - App instalable como PWA (manifest + service worker con `vite-plugin-pwa`)
 - Rutas protegidas para el área autenticada
-- Páginas "próximamente" para Movimientos, Flujo, Calendario, Clientes,
-  Proveedores, Simulador y Configuración (Sprints 2-3)
+
+**Sprint 2**
+- Movimientos: alta/edición/baja de ingresos y egresos, con cuentas
+  (banco/caja) y categorías propias por usuario, filtros por tipo/estado
+- Flujo de Caja: proyección diaria/semanal/mensual (Chart.js) calculada a
+  partir de los movimientos reales
+- Calendario mensual de cobros, pagos y vencimientos
+- Importación y exportación de movimientos en Excel (`src/utils/excel.js`,
+  librería `xlsx`)
+- Dashboard conectado a datos reales de Supabase (saldo disponible/
+  proyectado, pendientes, semáforo financiero, próximos vencimientos)
+
+Cada usuario nuevo arranca con una cuenta "Caja" y categorías básicas
+sembradas automáticamente (`supabase/schema_sprint2.sql`).
+
+Páginas "próximamente" para Clientes, Proveedores, Simulador y
+Configuración (Sprints 3-4).
 
 ## Identidad visual
 
@@ -57,9 +69,16 @@ npm run dev
    VITE_SUPABASE_URL=...
    VITE_SUPABASE_ANON_KEY=...
    ```
-3. Ejecutá `supabase/schema.sql` en el SQL Editor de tu proyecto para crear
-   la tabla `profiles` (perfil de usuario, plan, fecha de fin de prueba) y
-   el trigger que la completa automáticamente al registrarse un usuario.
+3. Ejecutá en el SQL Editor de tu proyecto, en este orden:
+   - `supabase/schema.sql` — tabla `profiles` (perfil, plan, fin de prueba)
+     y el trigger que la completa al registrarse un usuario.
+   - `supabase/schema_sprint2.sql` — tablas `cuentas`, `categorias` y
+     `movimientos` (con RLS por usuario) y el trigger que siembra una
+     cuenta "Caja" y categorías básicas para cada usuario nuevo.
+4. En **Authentication → URL Configuration**, configurá el **Site URL**
+   con el dominio real donde publiques la app (por ejemplo tu sitio de
+   Netlify) y agregalo también a **Redirect URLs**; si no, los links de
+   confirmación de email van a apuntar a `localhost`.
 
 Sin estas variables la app funciona igual (Landing, navegación), pero el
 login y el registro no van a poder autenticar usuarios reales — se muestra
@@ -74,6 +93,5 @@ npm run preview
 
 ## Próximos pasos (roadmap)
 
-- **Sprint 2:** Movimientos, Flujo de caja, Calendario, importación/exportación de Excel
 - **Sprint 3:** Clientes, Proveedores, Simulador financiero
 - **Sprint 4:** Plan Platinum (IA financiera, reportes avanzados, integración Odoo y Mercado Pago, usuarios y permisos)
