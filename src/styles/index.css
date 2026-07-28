@@ -1,0 +1,35 @@
+@import '@fontsource/inter/400.css';
+@import '@fontsource/inter/500.css';
+@import '@fontsource/inter/600.css';
+@import '@fontsource/inter/700.css';
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html {
+    @apply scroll-smooth;
+  }
+  body {
+    @apply bg-graphite-950 text-white;
+  }
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-metal-700 bg-graphite-900 p-5 shadow-lg shadow-black/20;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-xl bg-electric-600 px-5 py-2.5 font-medium text-white transition hover:bg-electric-500 hover:shadow-glow focus:outline-none focus:ring-2 focus:ring-electric-400 focus:ring-offset-2 focus:ring-offset-graphite-950 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-xl border border-metal-600 bg-graphite-800 px-5 py-2.5 font-medium text-white transition hover:border-electric-500 hover:text-electric-300 focus:outline-none focus:ring-2 focus:ring-electric-400 focus:ring-offset-2 focus:ring-offset-graphite-950;
+  }
+  .input-field {
+    @apply w-full rounded-lg border border-metal-600 bg-graphite-800 px-4 py-2.5 text-white placeholder-metal-400 outline-none transition focus:border-electric-500 focus:ring-1 focus:ring-electric-500;
+  }
+  .label-field {
+    @apply mb-1.5 block text-sm font-medium text-metal-300;
+  }
+}
