@@ -11,7 +11,9 @@ import {
   crearInvitacion,
   eliminarInvitacion,
 } from '../../services/empresas'
-import { formatDate } from '../../utils/format'
+import { crearSuscripcion } from '../../services/billing'
+import { formatDate, formatCurrency } from '../../utils/format'
+import { PRECIOS_ARS, NOMBRE_PLAN } from '../../utils/planes'
 
 const ROLES_LABEL = {
   propietario: 'Propietario',
@@ -21,8 +23,10 @@ const ROLES_LABEL = {
 }
 
 export default function Configuracion() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { empresaActiva, recargar: recargarEmpresas } = useEmpresa()
+  const [suscribiendo, setSuscribiendo] = useState(null)
+  const [errorPlan, setErrorPlan] = useState('')
   const [miembros, setMiembros] = useState([])
   const [invitaciones, setInvitaciones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -119,6 +123,18 @@ export default function Configuracion() {
     setTimeout(() => setLinkCopiado(''), 2000)
   }
 
+  async function handleSuscribirse(plan) {
+    setSuscribiendo(plan)
+    setErrorPlan('')
+    try {
+      const { init_point } = await crearSuscripcion(plan)
+      window.location.href = init_point
+    } catch (err) {
+      setErrorPlan(err.message)
+      setSuscribiendo(null)
+    }
+  }
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -131,6 +147,40 @@ export default function Configuracion() {
           {error}
         </p>
       )}
+
+      <div className="card mb-6">
+        <h2 className="font-semibold text-white">Plan y facturación</h2>
+        <p className="mt-1 text-sm text-metal-300">
+          Tu plan actual: <span className="text-white">{NOMBRE_PLAN[profile?.plan] ?? profile?.plan}</span>
+        </p>
+
+        {errorPlan && (
+          <p className="mt-3 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+            {errorPlan}
+          </p>
+        )}
+
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
+          {['starter', 'platinum'].map((plan) => (
+            <div key={plan} className="rounded-xl border border-metal-700 p-4">
+              <p className="font-medium text-white">{NOMBRE_PLAN[plan]}</p>
+              <p className="text-sm text-metal-400">{formatCurrency(PRECIOS_ARS[plan], 'ARS')} / mes</p>
+              {profile?.plan === plan ? (
+                <p className="mt-3 text-xs font-medium text-electric-400">Tu plan actual</p>
+              ) : (
+                <button
+                  type="button"
+                  className="btn-secondary mt-3 w-full text-sm"
+                  onClick={() => handleSuscribirse(plan)}
+                  disabled={suscribiendo !== null}
+                >
+                  {suscribiendo === plan ? 'Redirigiendo…' : `Suscribirme a ${NOMBRE_PLAN[plan]}`}
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
 
       {loading ? (
         <p className="text-sm text-metal-400">Cargando…</p>

@@ -71,8 +71,13 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   de ingresos y egresos por categoría, ranking de clientes por
   facturación y de proveedores por gasto, todo por moneda y exportable a
   Excel (`descargarReporteExcel` en `src/utils/excel.js`)
-- Pendiente: integración con Mercado Pago (pausada a pedido del cliente),
-  IA financiera e integración con Odoo
+- Suscripciones pagas de LMH Flow vía Mercado Pago (cobro recurrente en
+  ARS — ver sección **Cobros con Mercado Pago** más abajo): desde
+  Configuración, el usuario elige Starter o Platinum y paga con Mercado
+  Pago; un webhook activa el plan automáticamente
+- Pendiente: integración de Mercado Pago para que cada cliente importe
+  sus propias ventas (era la otra idea original, se priorizó primero
+  cobrar los planes de LMH Flow), IA financiera e integración con Odoo
 
 ## Identidad visual
 
@@ -160,6 +165,43 @@ npm run dev
 Sin estas variables la app funciona igual (Landing, navegación), pero el
 login y el registro no van a poder autenticar usuarios reales — se muestra
 un aviso en pantalla cuando falta la configuración.
+
+### Cobros con Mercado Pago (suscripciones Starter/Platinum)
+
+Desde **Configuración → Plan y facturación**, el usuario elige un plan y
+Mercado Pago le cobra automáticamente todos los meses (Preapproval /
+Suscripciones). El flujo vive en dos Edge Functions ya desplegadas en el
+proyecto de Supabase:
+
+- `supabase/functions/mp-crear-suscripcion` — crea el preapproval en
+  Mercado Pago y devuelve el link de pago (`init_point`) al que se
+  redirige al usuario.
+- `supabase/functions/mp-webhook` — recibe la notificación de Mercado
+  Pago, vuelve a consultar el estado real del preapproval contra la API
+  (nunca confía en el payload entrante) y si está `authorized` activa el
+  plan en `profiles.plan`.
+
+Para que funcione hace falta, una sola vez:
+
+1. En [Mercado Pago Developers](https://www.mercadopago.com.ar/developers/panel),
+   crear una aplicación y conseguir el **Access Token de producción**
+   (Tus integraciones → tu app → Credenciales de producción).
+2. Cargar ese token como secret en el proyecto de Supabase — **Project
+   Settings → Edge Functions → Secrets** — con el nombre `MP_ACCESS_TOKEN`
+   (nunca commitear este valor al repo ni pegarlo en un chat).
+3. En la misma aplicación de Mercado Pago, configurar la **URL de
+   notificaciones/webhooks** apuntando a:
+   ```
+   https://oxfkdioubobqttdyxcfn.supabase.co/functions/v1/mp-webhook
+   ```
+4. (Opcional) Setear el secret `APP_URL` con el dominio real de Netlify
+   si cambia — se usa para armar el link de vuelta (`back_url`) al
+   terminar el pago; por defecto apunta a `lmh-flowfinance.netlify.app`.
+
+Los precios (`$15.000`/`$30.000` ARS por mes) son un valor placeholder
+definido en `supabase/functions/mp-crear-suscripcion/index.ts` y en
+`src/utils/planes.js` (deben mantenerse sincronizados); ajustarlos ahí
+cuando se defina el precio real.
 
 ### Build de producción
 
