@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient'
 
 const SELECT_CON_RELACIONES =
-  '*, cuenta:cuentas(id,nombre,tipo), categoria:categorias(id,nombre,tipo)'
+  '*, cuenta:cuentas(id,nombre,tipo,moneda), categoria:categorias(id,nombre,tipo)'
 
 export async function listMovimientos({
   desde,
@@ -37,6 +37,7 @@ export async function createMovimiento({
   monto,
   fecha,
   estado = 'pendiente',
+  moneda = 'ARS',
 }) {
   const { data, error } = await supabase
     .from('movimientos')
@@ -49,6 +50,7 @@ export async function createMovimiento({
       monto,
       fecha,
       estado,
+      moneda,
     })
     .select(SELECT_CON_RELACIONES)
     .single()

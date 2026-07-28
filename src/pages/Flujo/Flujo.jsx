@@ -23,12 +23,15 @@ const VISTAS = [
   { id: 'mensual', label: 'Mensual' },
 ]
 
+const NOMBRE_MONEDA = { ARS: '$', USD: 'US$' }
+
 export default function Flujo() {
   const [cuentas, setCuentas] = useState([])
   const [movimientos, setMovimientos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [vista, setVista] = useState('diario')
+  const [moneda, setMoneda] = useState('ARS')
 
   useEffect(() => {
     Promise.all([listCuentas(), listMovimientos()])
@@ -40,9 +43,31 @@ export default function Flujo() {
       .finally(() => setLoading(false))
   }, [])
 
+  const monedasDisponibles = useMemo(() => {
+    const set = new Set([...cuentas.map((c) => c.moneda), ...movimientos.map((m) => m.moneda)])
+    if (set.size === 0) set.add('ARS')
+    return [...set].sort((a) => (a === 'ARS' ? -1 : 1))
+  }, [cuentas, movimientos])
+
+  useEffect(() => {
+    if (monedasDisponibles.length > 0 && !monedasDisponibles.includes(moneda)) {
+      setMoneda(monedasDisponibles[0])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [monedasDisponibles])
+
+  const cuentasMoneda = useMemo(
+    () => cuentas.filter((c) => c.moneda === moneda),
+    [cuentas, moneda]
+  )
+  const movimientosMoneda = useMemo(
+    () => movimientos.filter((m) => m.moneda === moneda),
+    [movimientos, moneda]
+  )
+
   const { labels, saldos, saldoHoy } = useMemo(
-    () => agruparFlujo(movimientos, cuentas, vista),
-    [movimientos, cuentas, vista]
+    () => agruparFlujo(movimientosMoneda, cuentasMoneda, vista),
+    [movimientosMoneda, cuentasMoneda, vista]
   )
 
   const chartData = {
@@ -51,8 +76,8 @@ export default function Flujo() {
       {
         label: 'Saldo proyectado',
         data: saldos,
-        borderColor: '#2B7BFF',
-        backgroundColor: 'rgba(43, 123, 255, 0.15)',
+        borderColor: '#2B86EE',
+        backgroundColor: 'rgba(43, 134, 238, 0.15)',
         pointRadius: 0,
         tension: 0.3,
         fill: true,
@@ -69,14 +94,14 @@ export default function Flujo() {
         backgroundColor: '#15181D',
         borderColor: '#2A2F38',
         borderWidth: 1,
-        callbacks: { label: (ctx) => formatCurrency(ctx.parsed.y) },
+        callbacks: { label: (ctx) => formatCurrency(ctx.parsed.y, moneda) },
       },
     },
     scales: {
       x: { grid: { display: false }, ticks: { color: '#9CA3AF', maxRotation: 0, autoSkip: true } },
       y: {
         grid: { color: '#20242B' },
-        ticks: { color: '#9CA3AF', callback: (value) => formatCurrency(value) },
+        ticks: { color: '#9CA3AF', callback: (value) => formatCurrency(value, moneda) },
       },
     },
   }
@@ -88,18 +113,35 @@ export default function Flujo() {
           <h1 className="font-display text-2xl font-semibold text-white">Flujo de caja</h1>
           <p className="text-metal-300">Proyección automática a partir de tus movimientos.</p>
         </div>
-        <div className="flex rounded-lg border border-metal-600 p-1">
-          {VISTAS.map((v) => (
-            <button
-              key={v.id}
-              onClick={() => setVista(v.id)}
-              className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
-                vista === v.id ? 'bg-electric-600/20 text-electric-300' : 'text-metal-400'
-              }`}
-            >
-              {v.label}
-            </button>
-          ))}
+        <div className="flex flex-wrap items-center gap-3">
+          {monedasDisponibles.length > 1 && (
+            <div className="flex rounded-lg border border-metal-600 p-1">
+              {monedasDisponibles.map((m) => (
+                <button
+                  key={m}
+                  onClick={() => setMoneda(m)}
+                  className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                    moneda === m ? 'bg-electric-600/20 text-electric-300' : 'text-metal-400'
+                  }`}
+                >
+                  {NOMBRE_MONEDA[m] ?? m}
+                </button>
+              ))}
+            </div>
+          )}
+          <div className="flex rounded-lg border border-metal-600 p-1">
+            {VISTAS.map((v) => (
+              <button
+                key={v.id}
+                onClick={() => setVista(v.id)}
+                className={`rounded-md px-3 py-1.5 text-sm font-medium transition ${
+                  vista === v.id ? 'bg-electric-600/20 text-electric-300' : 'text-metal-400'
+                }`}
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
 
@@ -113,7 +155,9 @@ export default function Flujo() {
         <div className="mb-4 flex flex-wrap items-baseline gap-x-6 gap-y-1">
           <div>
             <p className="text-sm text-metal-400">Saldo actual</p>
-            <p className="text-xl font-semibold text-white">{formatCurrency(saldoHoy ?? 0)}</p>
+            <p className="text-xl font-semibold text-white">
+              {formatCurrency(saldoHoy ?? 0, moneda)}
+            </p>
           </div>
         </div>
         {loading ? (

@@ -23,6 +23,7 @@ const FORM_INICIAL = {
   cuentaId: '',
   categoriaId: '',
   estado: 'pendiente',
+  moneda: 'ARS',
 }
 
 export default function Movimientos() {
@@ -38,9 +39,10 @@ export default function Movimientos() {
 
   const [filtroTipo, setFiltroTipo] = useState('todos')
   const [filtroEstado, setFiltroEstado] = useState('todos')
+  const [filtroMoneda, setFiltroMoneda] = useState('todas')
 
   const [mostrarCuentaForm, setMostrarCuentaForm] = useState(false)
-  const [nuevaCuenta, setNuevaCuenta] = useState({ nombre: '', tipo: 'banco' })
+  const [nuevaCuenta, setNuevaCuenta] = useState({ nombre: '', tipo: 'banco', moneda: 'ARS' })
   const [mostrarCategoriaForm, setMostrarCategoriaForm] = useState(false)
   const [nuevaCategoria, setNuevaCategoria] = useState({ nombre: '', tipo: 'ingreso' })
 
@@ -77,13 +79,19 @@ export default function Movimientos() {
     [categorias, form.tipo]
   )
 
+  const cuentaSeleccionada = useMemo(
+    () => cuentas.find((c) => c.id === form.cuentaId),
+    [cuentas, form.cuentaId]
+  )
+
   const movimientosFiltrados = useMemo(() => {
     return movimientos.filter((m) => {
       if (filtroTipo !== 'todos' && m.tipo !== filtroTipo) return false
       if (filtroEstado !== 'todos' && m.estado !== filtroEstado) return false
+      if (filtroMoneda !== 'todas' && m.moneda !== filtroMoneda) return false
       return true
     })
-  }, [movimientos, filtroTipo, filtroEstado])
+  }, [movimientos, filtroTipo, filtroEstado, filtroMoneda])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -105,9 +113,10 @@ export default function Movimientos() {
         monto,
         fecha: form.fecha,
         estado: form.estado,
+        moneda: cuentaSeleccionada?.moneda ?? form.moneda,
       })
       setMovimientos((prev) => [...prev, nuevo].sort((a, b) => a.fecha.localeCompare(b.fecha)))
-      setForm((f) => ({ ...FORM_INICIAL, cuentaId: f.cuentaId, tipo: f.tipo }))
+      setForm((f) => ({ ...FORM_INICIAL, cuentaId: f.cuentaId, tipo: f.tipo, moneda: f.moneda }))
     } catch (err) {
       setError(err.message)
     } finally {
@@ -142,9 +151,11 @@ export default function Movimientos() {
         userId: user.id,
         nombre: nuevaCuenta.nombre,
         tipo: nuevaCuenta.tipo,
+        moneda: nuevaCuenta.moneda,
       })
       setCuentas((prev) => [...prev, creada])
-      setNuevaCuenta({ nombre: '', tipo: 'banco' })
+      setForm((f) => ({ ...f, cuentaId: creada.id, moneda: creada.moneda }))
+      setNuevaCuenta({ nombre: '', tipo: 'banco', moneda: 'ARS' })
       setMostrarCuentaForm(false)
     } catch (err) {
       setError(err.message)
@@ -235,9 +246,33 @@ export default function Movimientos() {
 
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label className="label-field" htmlFor="monto">
-                  Monto
-                </label>
+                <div className="flex items-center justify-between">
+                  <label className="label-field" htmlFor="monto">
+                    Monto
+                  </label>
+                  {cuentaSeleccionada ? (
+                    <span className="mb-1.5 text-xs text-metal-400">
+                      {cuentaSeleccionada.moneda === 'USD' ? 'US$' : '$'}
+                    </span>
+                  ) : (
+                    <div className="mb-1.5 flex gap-1">
+                      {['ARS', 'USD'].map((mon) => (
+                        <button
+                          key={mon}
+                          type="button"
+                          onClick={() => setForm((f) => ({ ...f, moneda: mon }))}
+                          className={`rounded px-1.5 text-[11px] font-medium ${
+                            form.moneda === mon
+                              ? 'bg-electric-600/20 text-electric-300'
+                              : 'text-metal-400'
+                          }`}
+                        >
+                          {mon === 'USD' ? 'US$' : '$'}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 <input
                   id="monto"
                   type="text"
@@ -281,7 +316,7 @@ export default function Movimientos() {
                 </button>
               </div>
               {mostrarCuentaForm ? (
-                <div className="flex gap-2">
+                <div className="space-y-2">
                   <input
                     className="input-field"
                     placeholder="Nombre"
@@ -290,29 +325,47 @@ export default function Movimientos() {
                       setNuevaCuenta((c) => ({ ...c, nombre: e.target.value }))
                     }
                   />
-                  <select
-                    className="input-field w-28"
-                    value={nuevaCuenta.tipo}
-                    onChange={(e) => setNuevaCuenta((c) => ({ ...c, tipo: e.target.value }))}
-                  >
-                    <option value="banco">Banco</option>
-                    <option value="caja">Caja</option>
-                  </select>
-                  <button type="button" className="btn-secondary !px-3" onClick={handleCrearCuenta}>
-                    +
-                  </button>
+                  <div className="flex gap-2">
+                    <select
+                      className="input-field"
+                      value={nuevaCuenta.tipo}
+                      onChange={(e) => setNuevaCuenta((c) => ({ ...c, tipo: e.target.value }))}
+                    >
+                      <option value="banco">Banco</option>
+                      <option value="caja">Caja</option>
+                    </select>
+                    <select
+                      className="input-field"
+                      value={nuevaCuenta.moneda}
+                      onChange={(e) => setNuevaCuenta((c) => ({ ...c, moneda: e.target.value }))}
+                    >
+                      <option value="ARS">$ Pesos</option>
+                      <option value="USD">US$ Dólares</option>
+                    </select>
+                    <button
+                      type="button"
+                      className="btn-secondary !px-3"
+                      onClick={handleCrearCuenta}
+                    >
+                      +
+                    </button>
+                  </div>
                 </div>
               ) : (
                 <select
                   id="cuenta"
                   className="input-field"
                   value={form.cuentaId}
-                  onChange={(e) => setForm((f) => ({ ...f, cuentaId: e.target.value }))}
+                  onChange={(e) => {
+                    const cuentaId = e.target.value
+                    const cta = cuentas.find((c) => c.id === cuentaId)
+                    setForm((f) => ({ ...f, cuentaId, moneda: cta ? cta.moneda : f.moneda }))
+                  }}
                 >
                   <option value="">Sin cuenta</option>
                   {cuentas.map((c) => (
                     <option key={c.id} value={c.id}>
-                      {c.nombre}
+                      {c.nombre} ({c.moneda === 'USD' ? 'US$' : '$'})
                     </option>
                   ))}
                 </select>
@@ -420,6 +473,15 @@ export default function Movimientos() {
                 <option value="pendiente">Pendientes</option>
                 <option value="realizado">Realizados</option>
               </select>
+              <select
+                className="input-field !w-auto text-sm"
+                value={filtroMoneda}
+                onChange={(e) => setFiltroMoneda(e.target.value)}
+              >
+                <option value="todas">$ y US$</option>
+                <option value="ARS">Solo $</option>
+                <option value="USD">Solo US$</option>
+              </select>
             </div>
           </div>
 
@@ -460,7 +522,7 @@ export default function Movimientos() {
                         }`}
                       >
                         {m.tipo === 'ingreso' ? '+' : '-'}
-                        {formatCurrency(m.monto)}
+                        {formatCurrency(m.monto, m.moneda)}
                       </span>
                       <button
                         onClick={() => eliminar(m.id)}
@@ -503,7 +565,7 @@ export default function Movimientos() {
                           }`}
                         >
                           {m.tipo === 'ingreso' ? '+' : '-'}
-                          {formatCurrency(m.monto)}
+                          {formatCurrency(m.monto, m.moneda)}
                         </td>
                         <td className="py-2.5 pr-3">
                           <button

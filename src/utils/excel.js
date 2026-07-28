@@ -1,6 +1,6 @@
 import * as XLSX from 'xlsx'
 
-const COLUMNAS = ['Fecha', 'Tipo', 'Descripción', 'Monto', 'Cuenta', 'Categoría', 'Estado']
+const COLUMNAS = ['Fecha', 'Tipo', 'Descripción', 'Monto', 'Moneda', 'Cuenta', 'Categoría', 'Estado']
 
 export function descargarMovimientosExcel(movimientos) {
   const filas = movimientos.map((m) => ({
@@ -8,6 +8,7 @@ export function descargarMovimientosExcel(movimientos) {
     Tipo: m.tipo,
     Descripción: m.descripcion,
     Monto: m.monto,
+    Moneda: m.moneda === 'USD' ? 'US$' : '$',
     Cuenta: m.cuenta?.nombre ?? '',
     Categoría: m.categoria?.nombre ?? '',
     Estado: m.estado,
@@ -61,6 +62,13 @@ function normalizarEstado(valor) {
   return 'pendiente'
 }
 
+function normalizarMoneda(valor) {
+  const m = normalizarClave(valor)
+  if (['us$', 'usd', 'u$s', 'dolar', 'dolares', 'u$d'].includes(m)) return 'USD'
+  if (['$', 'ars', 'pesos', 'peso'].includes(m)) return 'ARS'
+  return null
+}
+
 /**
  * Lee un archivo .xlsx/.csv y devuelve { validos, invalidos }.
  * `validos` está listo para insertar (cuenta_id/categoria_id resueltos por
@@ -73,7 +81,9 @@ export async function leerMovimientosExcel(file, { cuentas, categorias }) {
   const primeraHoja = libro.Sheets[libro.SheetNames[0]]
   const filas = XLSX.utils.sheet_to_json(primeraHoja, { defval: '' })
 
-  const cuentaPorNombre = new Map(cuentas.map((c) => [normalizarClave(c.nombre), c.id]))
+  const cuentaPorNombre = new Map(
+    cuentas.map((c) => [normalizarClave(c.nombre), { id: c.id, moneda: c.moneda }])
+  )
   const categoriaPorNombre = new Map(categorias.map((c) => [normalizarClave(c.nombre), c.id]))
 
   const validos = []
@@ -100,13 +110,16 @@ export async function leerMovimientosExcel(file, { cuentas, categorias }) {
       return
     }
 
+    const cuentaMatch = cuentaPorNombre.get(normalizarClave(entradas.cuenta))
+
     validos.push({
       fecha,
       tipo,
       descripcion,
       monto,
       estado: normalizarEstado(entradas.estado),
-      cuenta_id: cuentaPorNombre.get(normalizarClave(entradas.cuenta)) ?? null,
+      moneda: normalizarMoneda(entradas.moneda) ?? cuentaMatch?.moneda ?? 'ARS',
+      cuenta_id: cuentaMatch?.id ?? null,
       categoria_id: categoriaPorNombre.get(normalizarClave(entradas.categoria)) ?? null,
     })
   })

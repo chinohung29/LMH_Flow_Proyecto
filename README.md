@@ -24,9 +24,13 @@ Implementado hasta ahora:
   librería `xlsx`)
 - Dashboard conectado a datos reales de Supabase (saldo disponible/
   proyectado, pendientes, semáforo financiero, próximos vencimientos)
+- Multi-moneda: cada cuenta es en pesos ($) o dólares (US$)
+  (`supabase/schema_sprint2_moneda.sql`); los montos de distintas monedas
+  nunca se suman entre sí — el Dashboard muestra una sección por moneda y
+  Flujo de Caja tiene un selector, para que cada total sea coherente
 
-Cada usuario nuevo arranca con una cuenta "Caja" y categorías básicas
-sembradas automáticamente (`supabase/schema_sprint2.sql`).
+Cada usuario nuevo arranca con una cuenta "Caja" (en pesos) y categorías
+básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
 
 Páginas "próximamente" para Clientes, Proveedores, Simulador y
 Configuración (Sprints 3-4).
@@ -90,6 +94,8 @@ npm run dev
    - `supabase/schema_sprint2.sql` — tablas `cuentas`, `categorias` y
      `movimientos` (con RLS por usuario) y el trigger que siembra una
      cuenta "Caja" y categorías básicas para cada usuario nuevo.
+   - `supabase/schema_sprint2_moneda.sql` — columna `moneda` (ARS/USD) en
+     `cuentas` y `movimientos`.
 4. En **Authentication → URL Configuration**, configurá el **Site URL**
    con el dominio real donde publiques la app (por ejemplo tu sitio de
    Netlify) y agregalo también a **Redirect URLs**; si no, los links de

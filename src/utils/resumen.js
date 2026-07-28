@@ -1,3 +1,25 @@
+/**
+ * Devuelve un resumen por cada moneda presente en las cuentas/movimientos
+ * (ARS primero). Los montos de distintas monedas nunca se suman entre sí.
+ */
+export function calcularResumenPorMoneda(movimientos, cuentas) {
+  const monedas = new Set([
+    ...cuentas.map((c) => c.moneda),
+    ...movimientos.map((m) => m.moneda),
+  ])
+  if (monedas.size === 0) monedas.add('ARS')
+
+  return [...monedas]
+    .sort((a) => (a === 'ARS' ? -1 : 1))
+    .map((moneda) => ({
+      moneda,
+      ...calcularResumen(
+        movimientos.filter((m) => m.moneda === moneda),
+        cuentas.filter((c) => c.moneda === moneda)
+      ),
+    }))
+}
+
 export function calcularResumen(movimientos, cuentas) {
   const saldoInicial = cuentas.reduce((acc, c) => acc + Number(c.saldo_inicial || 0), 0)
 

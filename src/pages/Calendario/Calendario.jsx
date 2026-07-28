@@ -155,7 +155,7 @@ export default function Calendario() {
                     }`}
                   >
                     {it.tipo === 'ingreso' ? '+' : '-'}
-                    {formatCurrency(it.monto)}
+                    {formatCurrency(it.monto, it.moneda)}
                   </span>
                 </li>
               ))}

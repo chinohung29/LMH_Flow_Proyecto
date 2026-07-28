@@ -9,6 +9,7 @@ create table public.cuentas (
   nombre text not null,
   tipo text not null default 'banco' check (tipo in ('banco', 'caja')),
   saldo_inicial numeric(14,2) not null default 0,
+  moneda text not null default 'ARS' check (moneda in ('ARS', 'USD')),
   created_at timestamptz not null default now()
 );
 
@@ -46,6 +47,7 @@ create table public.movimientos (
   monto numeric(14,2) not null check (monto > 0),
   fecha date not null,
   estado text not null default 'pendiente' check (estado in ('pendiente', 'realizado')),
+  moneda text not null default 'ARS' check (moneda in ('ARS', 'USD')),
   created_at timestamptz not null default now()
 );
 

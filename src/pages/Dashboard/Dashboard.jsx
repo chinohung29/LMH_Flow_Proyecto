@@ -14,7 +14,7 @@ import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../context/AuthContext'
 import { listCuentas } from '../../services/cuentas'
 import { listMovimientos } from '../../services/movimientos'
-import { calcularResumen, calcularSemaforo } from '../../utils/resumen'
+import { calcularResumenPorMoneda, calcularSemaforo } from '../../utils/resumen'
 import { agruparFlujo } from '../../utils/flujo'
 import { formatCurrency, formatDate } from '../../utils/format'
 
@@ -25,6 +25,8 @@ const SEMAFORO_STYLES = {
   amarillo: 'bg-warning/10 text-warning border-warning/40',
   rojo: 'bg-danger/10 text-danger border-danger/40',
 }
+
+const NOMBRE_MONEDA = { ARS: 'Pesos ($)', USD: 'Dólares (US$)' }
 
 export default function Dashboard() {
   const { user } = useAuth()
@@ -43,13 +45,52 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [])
 
-  const resumen = useMemo(() => calcularResumen(movimientos, cuentas), [movimientos, cuentas])
+  const resumenes = useMemo(
+    () => calcularResumenPorMoneda(movimientos, cuentas),
+    [movimientos, cuentas]
+  )
+  const nombre = user?.user_metadata?.nombre
+
+  return (
+    <DashboardLayout>
+      <div className="mb-6">
+        <h1 className="font-display text-2xl font-semibold text-white">
+          Hola{nombre ? `, ${nombre}` : ''} 👋
+        </h1>
+        <p className="text-metal-300">Este es el estado de tu flujo de caja hoy.</p>
+      </div>
+
+      {error && (
+        <p className="mb-4 rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      {loading ? (
+        <p className="text-sm text-metal-400">Cargando…</p>
+      ) : (
+        <div className="space-y-8">
+          {resumenes.map((resumen) => (
+            <MonedaSection
+              key={resumen.moneda}
+              resumen={resumen}
+              movimientos={movimientos.filter((m) => m.moneda === resumen.moneda)}
+              cuentas={cuentas.filter((c) => c.moneda === resumen.moneda)}
+              mostrarEtiqueta={resumenes.length > 1}
+            />
+          ))}
+        </div>
+      )}
+    </DashboardLayout>
+  )
+}
+
+function MonedaSection({ resumen, movimientos, cuentas, mostrarEtiqueta }) {
   const semaforo = calcularSemaforo(resumen)
   const { labels, saldos } = useMemo(
     () => agruparFlujo(movimientos, cuentas, 'diario'),
     [movimientos, cuentas]
   )
-  const nombre = user?.user_metadata?.nombre
 
   const chartData = {
     labels,
@@ -57,8 +98,8 @@ export default function Dashboard() {
       {
         label: 'Saldo proyectado',
         data: saldos,
-        borderColor: '#2B7BFF',
-        backgroundColor: 'rgba(43, 123, 255, 0.15)',
+        borderColor: '#2B86EE',
+        backgroundColor: 'rgba(43, 134, 238, 0.15)',
         pointRadius: 0,
         tension: 0.35,
         fill: true,
@@ -76,7 +117,7 @@ export default function Dashboard() {
         borderColor: '#2A2F38',
         borderWidth: 1,
         callbacks: {
-          label: (ctx) => formatCurrency(ctx.parsed.y),
+          label: (ctx) => formatCurrency(ctx.parsed.y, resumen.moneda),
         },
       },
     },
@@ -86,23 +127,22 @@ export default function Dashboard() {
         grid: { color: '#20242B' },
         ticks: {
           color: '#9CA3AF',
-          callback: (value) => formatCurrency(value),
+          callback: (value) => formatCurrency(value, resumen.moneda),
         },
       },
     },
   }
 
   return (
-    <DashboardLayout>
-      <div className="mb-6 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-white">
-            Hola{nombre ? `, ${nombre}` : ''} 👋
-          </h1>
-          <p className="text-metal-300">
-            Este es el estado de tu flujo de caja hoy.
-          </p>
-        </div>
+    <div>
+      <div className="mb-4 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
+        {mostrarEtiqueta ? (
+          <h2 className="font-display text-lg font-semibold text-white">
+            {NOMBRE_MONEDA[resumen.moneda] ?? resumen.moneda}
+          </h2>
+        ) : (
+          <span />
+        )}
         <span
           className={`w-fit rounded-full border px-4 py-1.5 text-sm font-medium ${SEMAFORO_STYLES[semaforo.nivel]}`}
         >
@@ -110,32 +150,36 @@ export default function Dashboard() {
         </span>
       </div>
 
-      {error && (
-        <p className="mb-4 rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
-          {error}
-        </p>
-      )}
-
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <StatCard label="Saldo disponible" value={resumen.saldoDisponible} />
-        <StatCard label="Saldo proyectado" value={resumen.saldoProyectado} />
+        <StatCard
+          label="Saldo disponible"
+          value={resumen.saldoDisponible}
+          moneda={resumen.moneda}
+        />
+        <StatCard
+          label="Saldo proyectado"
+          value={resumen.saldoProyectado}
+          moneda={resumen.moneda}
+        />
         <StatCard
           label="Cobros pendientes"
           value={resumen.cobrosPendientes}
+          moneda={resumen.moneda}
           accent="text-success"
         />
         <StatCard
           label="Pagos pendientes"
           value={resumen.pagosPendientes}
+          moneda={resumen.moneda}
           accent="text-danger"
         />
       </div>
 
-      <div className="mt-6 grid grid-cols-1 gap-4 lg:grid-cols-3">
+      <div className="mt-4 grid grid-cols-1 gap-4 lg:grid-cols-3">
         <div className="card lg:col-span-2">
           <div className="flex items-center justify-between">
             <div>
-              <h2 className="font-semibold text-white">Proyección de flujo de caja</h2>
+              <h3 className="font-semibold text-white">Proyección de flujo de caja</h3>
               <p className="text-sm text-metal-400">Próximos días</p>
             </div>
             <Link to="/flujo" className="text-sm text-electric-400 hover:text-electric-300">
@@ -143,24 +187,18 @@ export default function Dashboard() {
             </Link>
           </div>
           <div className="mt-4 h-64">
-            {loading ? (
-              <p className="text-sm text-metal-400">Cargando…</p>
-            ) : (
-              <Line data={chartData} options={chartOptions} />
-            )}
+            <Line data={chartData} options={chartOptions} />
           </div>
         </div>
 
         <div className="card">
           <div className="flex items-center justify-between">
-            <h2 className="font-semibold text-white">Próximos vencimientos</h2>
+            <h3 className="font-semibold text-white">Próximos vencimientos</h3>
             <Link to="/calendario" className="text-sm text-electric-400 hover:text-electric-300">
               Ver todos →
             </Link>
           </div>
-          {loading ? (
-            <p className="mt-4 text-sm text-metal-400">Cargando…</p>
-          ) : resumen.proximosVencimientos.length === 0 ? (
+          {resumen.proximosVencimientos.length === 0 ? (
             <p className="mt-4 text-sm text-metal-400">
               No tenés cobros ni pagos pendientes cargados.
             </p>
@@ -178,7 +216,7 @@ export default function Dashboard() {
                     }`}
                   >
                     {v.tipo === 'ingreso' ? '+' : '-'}
-                    {formatCurrency(v.monto)}
+                    {formatCurrency(v.monto, resumen.moneda)}
                   </span>
                 </li>
               ))}
@@ -186,15 +224,15 @@ export default function Dashboard() {
           )}
         </div>
       </div>
-    </DashboardLayout>
+    </div>
   )
 }
 
-function StatCard({ label, value, accent = 'text-white' }) {
+function StatCard({ label, value, moneda, accent = 'text-white' }) {
   return (
     <div className="card">
       <p className="text-sm text-metal-400">{label}</p>
-      <p className={`mt-2 text-2xl font-semibold ${accent}`}>{formatCurrency(value)}</p>
+      <p className={`mt-2 text-2xl font-semibold ${accent}`}>{formatCurrency(value, moneda)}</p>
     </div>
   )
 }

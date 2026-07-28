@@ -9,10 +9,10 @@ export async function listCuentas() {
   return data
 }
 
-export async function createCuenta({ userId, nombre, tipo, saldoInicial = 0 }) {
+export async function createCuenta({ userId, nombre, tipo, saldoInicial = 0, moneda = 'ARS' }) {
   const { data, error } = await supabase
     .from('cuentas')
-    .insert({ user_id: userId, nombre, tipo, saldo_inicial: saldoInicial })
+    .insert({ user_id: userId, nombre, tipo, saldo_inicial: saldoInicial, moneda })
     .select()
     .single()
   if (error) throw error
