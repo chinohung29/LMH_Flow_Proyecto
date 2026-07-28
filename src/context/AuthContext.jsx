@@ -49,6 +49,13 @@ export function AuthProvider({ children }) {
 
   const signOut = () => supabase.auth.signOut()
 
+  const resetPasswordForEmail = (email) =>
+    supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/restablecer-password`,
+    })
+
+  const updatePassword = (password) => supabase.auth.updateUser({ password })
+
   const value = {
     session,
     user: session?.user ?? null,
@@ -57,6 +64,8 @@ export function AuthProvider({ children }) {
     signUp,
     signIn,
     signOut,
+    resetPasswordForEmail,
+    updatePassword,
     recargarPerfil: () => cargarPerfil(session?.user?.id),
   }
 

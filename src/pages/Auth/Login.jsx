@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useLocation, useNavigate } from 'react-router-dom'
 import Logo from '../../components/Logo'
+import PasswordInput from '../../components/PasswordInput'
 import { useAuth } from '../../context/AuthContext'
 import { isSupabaseConfigured } from '../../services/supabaseClient'
 
@@ -64,15 +65,21 @@ export default function Login() {
               />
             </div>
             <div>
-              <label className="label-field" htmlFor="password">
-                Contraseña
-              </label>
-              <input
+              <div className="flex items-baseline justify-between">
+                <label className="label-field" htmlFor="password">
+                  Contraseña
+                </label>
+                <Link
+                  to="/olvide-password"
+                  className="mb-1.5 text-xs font-medium text-electric-400 hover:text-electric-300"
+                >
+                  ¿Olvidaste tu contraseña?
+                </Link>
+              </div>
+              <PasswordInput
                 id="password"
-                type="password"
                 required
                 autoComplete="current-password"
-                className="input-field"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="••••••••"

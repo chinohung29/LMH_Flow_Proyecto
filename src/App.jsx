@@ -3,6 +3,8 @@ import ProtectedRoute from './components/ProtectedRoute'
 import Landing from './pages/Landing/Landing'
 import Login from './pages/Auth/Login'
 import Registro from './pages/Auth/Registro'
+import OlvidePassword from './pages/Auth/OlvidePassword'
+import RestablecerPassword from './pages/Auth/RestablecerPassword'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Movimientos from './pages/Movimientos/Movimientos'
 import Flujo from './pages/Flujo/Flujo'
@@ -28,6 +30,8 @@ export default function App() {
       <Route path="/" element={<Landing />} />
       <Route path="/login" element={<Login />} />
       <Route path="/registro" element={<Registro />} />
+      <Route path="/olvide-password" element={<OlvidePassword />} />
+      <Route path="/restablecer-password" element={<RestablecerPassword />} />
       <Route path="/dashboard" element={withProtection(Dashboard)} />
       <Route path="/movimientos" element={withProtection(Movimientos)} />
       <Route path="/flujo" element={withProtection(Flujo)} />

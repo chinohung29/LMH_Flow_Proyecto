@@ -25,7 +25,7 @@ function NavList({ onNavigate }) {
           to={item.to}
           onClick={onNavigate}
           className={({ isActive }) =>
-            `flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition ${
+            `flex items-center gap-3 rounded-lg px-3 py-2.5 font-display text-sm font-medium tracking-wide transition ${
               isActive
                 ? 'bg-electric-600/15 text-electric-300'
                 : 'text-metal-300 hover:bg-graphite-800 hover:text-white'

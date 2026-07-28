@@ -10,7 +10,9 @@ Implementado hasta ahora:
 
 **Sprint 1**
 - Landing con propuesta de valor, funciones y planes (Starter / Platinum)
-- Registro e inicio de sesión con Supabase Auth
+- Registro e inicio de sesión con Supabase Auth, con opción de mostrar/
+  ocultar la contraseña y recuperación por email (`/olvide-password` →
+  link a `/restablecer-password`)
 - App instalable como PWA (manifest + service worker con `vite-plugin-pwa`)
 - Rutas protegidas para el área autenticada
 
@@ -74,18 +76,23 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
 
 ## Identidad visual
 
-Paleta muestreada por color directamente del logo oficial (fondo negro
-grafito, azul acero + plateado/cromado del isotipo), definida en
+Paleta muestreada por color directamente del logo oficial (fondo azul
+marino, azul acero + plateado/cromado del isotipo), definida en
 `tailwind.config.js`:
 
-- `graphite` — fondo (calibrado sobre el navy del logo)
+- `graphite` — fondo azul marino (más claro que el negro grafito original,
+  misma progresión oscuro → claro)
 - `metal` — superficies, bordes, texto secundario, incluye tonos plateados
   (`metal-200`/`metal-100`) tomados del cromado del isotipo
 - `electric` — azul acero de marca; el tono `600` (botones/links) se
   satura un poco sobre la misma tonalidad para mantener buen contraste
+- `white` (sobreescrito en `extend.colors`) — texto principal plateado en
+  vez de blanco puro, para que los títulos y textos en `text-white` tengan
+  el mismo tono cromado que el isotipo
 - Tipografía: Inter para texto de UI (`@fontsource/inter`) + Cinzel para
-  títulos y momentos de marca (`@fontsource/cinzel`, clase `font-display`),
-  buscando el mismo estilo serif elegante del wordmark "Flow-Finance"
+  títulos, momentos de marca y las opciones del menú (sidebar/drawer y
+  navbar público, clase `font-display`), buscando el mismo estilo serif
+  elegante del wordmark "Flow-Finance"
 
 **Logo:** se usa el logo oficial de LMH ("LMH Flow-Finance"). El archivo
 fuente era una lámina de presentación (mockup 3D con fondo oscuro), así
@@ -146,8 +153,9 @@ npm run dev
      triggers de `clientes`/`proveedores`.
 4. En **Authentication → URL Configuration**, configurá el **Site URL**
    con el dominio real donde publiques la app (por ejemplo tu sitio de
-   Netlify) y agregalo también a **Redirect URLs**; si no, los links de
-   confirmación de email van a apuntar a `localhost`.
+   Netlify) y agregalo también a **Redirect URLs** (incluyendo
+   `.../restablecer-password`); si no, los links de confirmación de email
+   y de recuperación de contraseña van a apuntar a `localhost`.
 
 Sin estas variables la app funciona igual (Landing, navegación), pero el
 login y el registro no van a poder autenticar usuarios reales — se muestra

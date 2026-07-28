@@ -5,24 +5,28 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Fondo negro grafito (calibrado sobre el navy de fondo del logo)
+        // Texto principal plateado (en vez de blanco puro), en línea con el
+        // cromado del isotipo
+        white: '#E9EDF4',
+        // Fondo azul marino (un tono más claro que el negro grafito original,
+        // manteniendo la misma progresión oscuro -> claro)
         graphite: {
-          950: '#070A0F',
-          900: '#0C0F14',
-          800: '#12161C',
-          700: '#1A1F27',
+          950: '#0A1220',
+          900: '#101C33',
+          800: '#17233D',
+          700: '#223253',
         },
         // Gris metálico / plateado-cromado (tomado del isotipo LMH)
         metal: {
-          900: '#171B21',
-          800: '#20242B',
-          700: '#2A2F38',
-          600: '#3A4048',
-          500: '#4E555F',
-          400: '#6B7280',
-          300: '#9AA4B0',
-          200: '#C6C7C9',
-          100: '#E4E5E7',
+          900: '#1B212C',
+          800: '#242B38',
+          700: '#303847',
+          600: '#414A5B',
+          500: '#565F72',
+          400: '#7A8496',
+          300: '#A6B0C0',
+          200: '#CDD3DE',
+          100: '#E9EDF4',
         },
         // Azul acero del logo. El 600 se satura/aclara sobre la misma tonalidad
         // para que botones y links mantengan buen contraste sobre el fondo.

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import Logo from '../../components/Logo'
+import PasswordInput from '../../components/PasswordInput'
 import { useAuth } from '../../context/AuthContext'
 import { isSupabaseConfigured } from '../../services/supabaseClient'
 
@@ -106,13 +107,11 @@ export default function Registro() {
                   <label className="label-field" htmlFor="password">
                     Contraseña
                   </label>
-                  <input
+                  <PasswordInput
                     id="password"
-                    type="password"
                     required
                     minLength={8}
                     autoComplete="new-password"
-                    className="input-field"
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="Mínimo 8 caracteres"
