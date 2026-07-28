@@ -87,7 +87,12 @@ export default function Movimientos() {
 
   async function handleSubmit(e) {
     e.preventDefault()
+    const monto = Number(String(form.monto).replace(',', '.'))
     if (!form.descripcion || !form.monto || !form.fecha) return
+    if (!monto || monto <= 0) {
+      setError('El monto tiene que ser un número mayor a 0.')
+      return
+    }
     setGuardando(true)
     setError('')
     try {
@@ -97,7 +102,7 @@ export default function Movimientos() {
         categoriaId: form.categoriaId || null,
         tipo: form.tipo,
         descripcion: form.descripcion,
-        monto: Number(form.monto),
+        monto,
         fecha: form.fecha,
         estado: form.estado,
       })
@@ -235,13 +240,16 @@ export default function Movimientos() {
                 </label>
                 <input
                   id="monto"
-                  type="number"
-                  min="0"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
                   required
                   className="input-field"
                   value={form.monto}
-                  onChange={(e) => setForm((f) => ({ ...f, monto: e.target.value }))}
+                  onChange={(e) => {
+                    const valor = e.target.value.replace(/[^0-9.,]/g, '')
+                    setForm((f) => ({ ...f, monto: valor }))
+                  }}
                 />
               </div>
               <div>
