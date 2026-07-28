@@ -42,11 +42,22 @@ superficies), definida en `tailwind.config.js`:
 - `electric` — color principal de marca (azul eléctrico)
 - Tipografía: Inter (`@fontsource/inter`, autohospedada para que funcione offline)
 
-**Logo:** todavía no se subió el archivo oficial de LMH. Se usa un logo
-placeholder (`src/components/Logo.jsx`, `public/logo.png`,
-`public/favicon.svg`, `public/icons/*`) tipo wordmark "LMH Flow" con un
-ícono de tendencia ascendente. Cuando tengas el logo real, reemplazá esos
-archivos y actualizá `Logo.jsx`.
+**Logo:** se usa el logo oficial de LMH ("LMH Flow-Finance"). El archivo
+fuente era una lámina de presentación (mockup 3D con fondo oscuro), así
+que se generaron los assets reales con `scripts/generate-brand-assets.cjs`
+(requiere el paquete `sharp`, no está en las dependencias del proyecto —
+instalarlo aparte si hace falta regenerar algo):
+
+- `public/logo.png` — isotipo + wordmark, fondo transparente (recorte por
+  luminancia, sin caja/rectángulo visible sobre el fondo de la app)
+- `public/logo-mark.png` — solo el isotipo, también transparente
+- `public/icons/*`, `public/favicon-*.png` — íconos PWA/favicon/apple-touch,
+  compuestos sobre el fondo de marca `#0A0C0F`
+
+`src/components/Logo.jsx` renderiza estos PNG (`variant="full"` o
+`variant="mark"` para espacios angostos). Si en algún momento aparece una
+versión vectorial (SVG) del logo oficial, reemplazar estos archivos directo
+es más simple y da mejor nitidez que el recorte actual.
 
 ## Stack
 

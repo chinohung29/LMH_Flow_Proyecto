@@ -43,7 +43,7 @@ export default function Registro() {
     <div className="flex min-h-screen items-center justify-center bg-graphite-950 px-4 py-12">
       <div className="w-full max-w-sm">
         <Link to="/" className="mb-8 flex justify-center">
-          <Logo />
+          <Logo className="h-11" />
         </Link>
         <div className="card">
           {enviado ? (

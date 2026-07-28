@@ -6,7 +6,7 @@ export default function PublicNavbar() {
     <header className="sticky top-0 z-40 border-b border-metal-800/80 bg-graphite-950/85 pt-[env(safe-area-inset-top)] backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link to="/">
-          <Logo />
+          <Logo className="h-9" />
         </Link>
         <div className="hidden items-center gap-8 text-sm text-metal-300 sm:flex">
           <a href="#funciones" className="hover:text-white">

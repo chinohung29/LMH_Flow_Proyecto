@@ -51,7 +51,7 @@ export default function DashboardLayout({ children }) {
     <div className="flex min-h-screen bg-graphite-950">
       <aside className="hidden w-64 shrink-0 border-r border-metal-800 bg-graphite-900 pl-[env(safe-area-inset-left)] md:flex md:flex-col">
         <div className="px-5 py-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
-          <Logo />
+          <Logo className="h-8" />
         </div>
         <NavList />
         <div className="border-t border-metal-800 p-4">
@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }) {
               />
             </svg>
           </button>
-          <Logo />
+          <Logo variant="mark" className="h-8" />
           <button onClick={signOut} className="text-sm text-metal-300">
             Salir
           </button>
@@ -98,7 +98,7 @@ export default function DashboardLayout({ children }) {
           />
           <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85vw] flex-col bg-graphite-900 shadow-xl">
             <div className="flex items-center justify-between px-5 py-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
-              <Logo />
+              <Logo className="h-8" />
               <button
                 onClick={() => setMenuAbierto(false)}
                 aria-label="Cerrar menú"

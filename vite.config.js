@@ -11,7 +11,7 @@ export default defineConfig({
       injectRegister: 'auto',
       filename: 'sw.js',
       manifestFilename: 'manifest.json',
-      includeAssets: ['favicon.svg', 'icons/*.png'],
+      includeAssets: ['favicon-16.png', 'favicon-32.png', 'logo.png', 'logo-mark.png', 'icons/*.png'],
       manifest: {
         name: 'LMH Flow',
         short_name: 'LMH Flow',
