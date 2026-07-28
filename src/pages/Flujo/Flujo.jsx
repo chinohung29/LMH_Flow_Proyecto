@@ -10,6 +10,7 @@ import {
 } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import DashboardLayout from '../../components/DashboardLayout'
+import { useEmpresa } from '../../context/EmpresaContext'
 import { listCuentas } from '../../services/cuentas'
 import { listMovimientos } from '../../services/movimientos'
 import { agruparFlujo } from '../../utils/flujo'
@@ -26,6 +27,7 @@ const VISTAS = [
 const NOMBRE_MONEDA = { ARS: '$', USD: 'US$' }
 
 export default function Flujo() {
+  const { empresaActiva } = useEmpresa()
   const [cuentas, setCuentas] = useState([])
   const [movimientos, setMovimientos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -34,14 +36,16 @@ export default function Flujo() {
   const [moneda, setMoneda] = useState('ARS')
 
   useEffect(() => {
-    Promise.all([listCuentas(), listMovimientos()])
+    if (!empresaActiva) return
+    setLoading(true)
+    Promise.all([listCuentas(empresaActiva.id), listMovimientos({ empresaId: empresaActiva.id })])
       .then(([c, m]) => {
         setCuentas(c)
         setMovimientos(m)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [empresaActiva?.id])
 
   const monedasDisponibles = useMemo(() => {
     const set = new Set([...cuentas.map((c) => c.moneda), ...movimientos.map((m) => m.moneda)])

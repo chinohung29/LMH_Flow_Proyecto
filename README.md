@@ -4,7 +4,7 @@ PWA de gestión de flujo de caja para pequeñas empresas, profesionales y
 comercios. Objetivo: que cualquier usuario sepa en menos de 10 segundos si
 tendrá dinero suficiente para afrontar sus próximos pagos.
 
-## Estado actual (Sprint 1 + Sprint 2 + Sprint 3)
+## Estado actual (Sprint 1 + Sprint 2 + Sprint 3 + Sprint 4 en curso)
 
 Implementado hasta ahora:
 
@@ -45,7 +45,26 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   tocar tus datos reales) y lo comparan contra el flujo actual en un
   mismo gráfico, con el saldo mínimo proyectado de cada escenario
 
-Página "próximamente" para Configuración (Sprint 4).
+**Sprint 4 (Plan Platinum, en curso)**
+- Multiempresa y multiusuario (`supabase/schema_sprint4_empresas.sql`):
+  cada usuario puede pertenecer a varias empresas, con un rol por empresa
+  (propietario/administrador/miembro/lector) que define qué puede editar.
+  Todas las tablas de datos (cuentas, categorías, movimientos, clientes,
+  proveedores) ahora se filtran por `empresa_id` en vez de por usuario
+  directo, con RLS reescrita en base a la membresía en `empresa_miembros`
+- Selector de empresa (`EmpresaSwitcher`) en el sidebar/drawer, para crear
+  una empresa nueva o cambiar la activa sin recargar la página
+  (`EmpresaContext`)
+- Página Configuración: editar el nombre de la empresa, ver/administrar
+  miembros (cambiar rol, quitar) y generar invitaciones por link
+  (`/unirse/:codigo`) sin depender de envío de emails
+- Límites del plan Starter (`supabase/schema_sprint4_limites.sql`): 1
+  empresa propia, 20 clientes y 20 proveedores por empresa. Se avisa en la
+  UI antes de llegar al límite y también se valida en el backend (función
+  `crear_empresa` y triggers en `clientes`/`proveedores`); los planes
+  trial y platinum no tienen límite
+- Pendiente: integración con Mercado Pago, IA financiera, reportes
+  avanzados e integración con Odoo
 
 ## Identidad visual
 
@@ -110,6 +129,15 @@ npm run dev
      `cuentas` y `movimientos`.
    - `supabase/schema_sprint3.sql` — tablas `clientes` y `proveedores`, y
      las columnas `cliente_id`/`proveedor_id` en `movimientos`.
+   - `supabase/schema_sprint4_empresas.sql` — tablas `empresas`,
+     `empresa_miembros` e `invitaciones`, columnas `empresa_id` en las
+     tablas existentes (con backfill de los datos previos) y RLS por
+     empresa en vez de por usuario. **Ojo:** este script asume que ya
+     corriste los anteriores y tenés datos reales de usuarios existentes;
+     leelo antes de aplicarlo si tu proyecto ya está en producción.
+   - `supabase/schema_sprint4_limites.sql` — límites de plan Starter (1
+     empresa, 20 clientes/proveedores) en la función `crear_empresa` y en
+     triggers de `clientes`/`proveedores`.
 4. En **Authentication → URL Configuration**, configurá el **Site URL**
    con el dominio real donde publiques la app (por ejemplo tu sitio de
    Netlify) y agregalo también a **Redirect URLs**; si no, los links de
@@ -128,4 +156,5 @@ npm run preview
 
 ## Próximos pasos (roadmap)
 
-- **Sprint 4:** Plan Platinum (IA financiera, reportes avanzados, integración Odoo y Mercado Pago, usuarios y permisos)
+- **Sprint 4 (resto):** integración con Mercado Pago, IA financiera,
+  reportes avanzados e integración con Odoo

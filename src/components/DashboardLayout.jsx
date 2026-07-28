@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { NavLink, useLocation } from 'react-router-dom'
 import Logo from './Logo'
+import EmpresaSwitcher from './EmpresaSwitcher'
 import { useAuth } from '../context/AuthContext'
 
 const NAV_ITEMS = [
@@ -50,8 +51,9 @@ export default function DashboardLayout({ children }) {
   return (
     <div className="flex min-h-screen bg-graphite-950">
       <aside className="hidden w-64 shrink-0 border-r border-metal-800 bg-graphite-900 pl-[env(safe-area-inset-left)] md:flex md:flex-col">
-        <div className="px-5 py-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
+        <div className="space-y-3 px-5 py-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
           <Logo className="h-8" />
+          <EmpresaSwitcher />
         </div>
         <NavList />
         <div className="border-t border-metal-800 p-4">
@@ -100,6 +102,7 @@ export default function DashboardLayout({ children }) {
             <div className="flex items-center justify-between px-5 py-5 pt-[calc(env(safe-area-inset-top)+1.25rem)]">
               <Logo className="h-8" />
               <button
+                type="button"
                 onClick={() => setMenuAbierto(false)}
                 aria-label="Cerrar menú"
                 className="flex h-9 w-9 items-center justify-center rounded-lg text-metal-300 hover:bg-graphite-800 hover:text-white"
@@ -113,6 +116,9 @@ export default function DashboardLayout({ children }) {
                   />
                 </svg>
               </button>
+            </div>
+            <div className="px-5 pb-4">
+              <EmpresaSwitcher />
             </div>
             <NavList onNavigate={() => setMenuAbierto(false)} />
             <div className="border-t border-metal-800 p-4">

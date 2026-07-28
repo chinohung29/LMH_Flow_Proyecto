@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
+import { useEmpresa } from '../context/EmpresaContext'
 import { leerMovimientosExcel } from '../utils/excel'
 import { bulkInsertMovimientos } from '../services/movimientos'
 
@@ -10,6 +11,7 @@ export default function ImportMovimientosButton({
   onError,
 }) {
   const { user } = useAuth()
+  const { empresaActiva } = useEmpresa()
   const inputRef = useRef(null)
   const [importando, setImportando] = useState(false)
   const [resumen, setResumen] = useState('')
@@ -29,7 +31,7 @@ export default function ImportMovimientosButton({
 
       let insertados = []
       if (validos.length > 0) {
-        insertados = await bulkInsertMovimientos(user.id, validos)
+        insertados = await bulkInsertMovimientos(user.id, empresaActiva.id, validos)
         onImported?.(insertados)
       }
 

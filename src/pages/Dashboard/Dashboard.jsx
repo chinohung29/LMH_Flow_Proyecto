@@ -12,6 +12,7 @@ import { Line } from 'react-chartjs-2'
 import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../context/AuthContext'
+import { useEmpresa } from '../../context/EmpresaContext'
 import { listCuentas } from '../../services/cuentas'
 import { listMovimientos } from '../../services/movimientos'
 import { calcularResumenPorMoneda, calcularSemaforo } from '../../utils/resumen'
@@ -30,20 +31,23 @@ const NOMBRE_MONEDA = { ARS: 'Pesos ($)', USD: 'Dólares (US$)' }
 
 export default function Dashboard() {
   const { user } = useAuth()
+  const { empresaActiva } = useEmpresa()
   const [cuentas, setCuentas] = useState([])
   const [movimientos, setMovimientos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   useEffect(() => {
-    Promise.all([listCuentas(), listMovimientos()])
+    if (!empresaActiva) return
+    setLoading(true)
+    Promise.all([listCuentas(empresaActiva.id), listMovimientos({ empresaId: empresaActiva.id })])
       .then(([c, m]) => {
         setCuentas(c)
         setMovimientos(m)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [empresaActiva?.id])
 
   const resumenes = useMemo(
     () => calcularResumenPorMoneda(movimientos, cuentas),

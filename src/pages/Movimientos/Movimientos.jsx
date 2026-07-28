@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../context/AuthContext'
+import { useEmpresa } from '../../context/EmpresaContext'
 import { listCuentas, createCuenta } from '../../services/cuentas'
 import { listCategorias, createCategoria } from '../../services/categorias'
 import { listClientes } from '../../services/clientes'
@@ -32,6 +33,7 @@ const FORM_INICIAL = {
 
 export default function Movimientos() {
   const { user } = useAuth()
+  const { empresaActiva } = useEmpresa()
   const [cuentas, setCuentas] = useState([])
   const [categorias, setCategorias] = useState([])
   const [clientes, setClientes] = useState([])
@@ -52,16 +54,16 @@ export default function Movimientos() {
   const [mostrarCategoriaForm, setMostrarCategoriaForm] = useState(false)
   const [nuevaCategoria, setNuevaCategoria] = useState({ nombre: '', tipo: 'ingreso' })
 
-  async function cargarTodo() {
+  async function cargarTodo(empresaId) {
     setLoading(true)
     setError('')
     try {
       const [c, cat, cli, prov, mov] = await Promise.all([
-        listCuentas(),
-        listCategorias(),
-        listClientes(),
-        listProveedores(),
-        listMovimientos(),
+        listCuentas(empresaId),
+        listCategorias(empresaId),
+        listClientes(empresaId),
+        listProveedores(empresaId),
+        listMovimientos({ empresaId }),
       ])
       setCuentas(c)
       setCategorias(cat)
@@ -80,9 +82,9 @@ export default function Movimientos() {
   }
 
   useEffect(() => {
-    cargarTodo()
+    if (empresaActiva) cargarTodo(empresaActiva.id)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  }, [empresaActiva?.id])
 
   const categoriasDelTipo = useMemo(
     () => categorias.filter((c) => c.tipo === form.tipo),
@@ -116,6 +118,7 @@ export default function Movimientos() {
     try {
       const nuevo = await createMovimiento({
         userId: user.id,
+        empresaId: empresaActiva.id,
         cuentaId: form.cuentaId || null,
         categoriaId: form.categoriaId || null,
         clienteId: form.clienteId || null,
@@ -161,6 +164,7 @@ export default function Movimientos() {
     try {
       const creada = await createCuenta({
         userId: user.id,
+        empresaId: empresaActiva.id,
         nombre: nuevaCuenta.nombre,
         tipo: nuevaCuenta.tipo,
         moneda: nuevaCuenta.moneda,
@@ -180,6 +184,7 @@ export default function Movimientos() {
     try {
       const creada = await createCategoria({
         userId: user.id,
+        empresaId: empresaActiva.id,
         nombre: nuevaCategoria.nombre,
         tipo: nuevaCategoria.tipo,
       })

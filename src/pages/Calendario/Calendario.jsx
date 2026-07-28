@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
+import { useEmpresa } from '../../context/EmpresaContext'
 import { listMovimientos } from '../../services/movimientos'
 import { generarGrillaMes, NOMBRE_MES } from '../../utils/calendar'
 import { formatCurrency, formatDate } from '../../utils/format'
@@ -14,6 +15,7 @@ function hoyISO() {
 }
 
 export default function Calendario() {
+  const { empresaActiva } = useEmpresa()
   const [movimientos, setMovimientos] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -24,11 +26,13 @@ export default function Calendario() {
   const [diaSeleccionado, setDiaSeleccionado] = useState(hoyISO())
 
   useEffect(() => {
-    listMovimientos()
+    if (!empresaActiva) return
+    setLoading(true)
+    listMovimientos({ empresaId: empresaActiva.id })
       .then(setMovimientos)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [empresaActiva?.id])
 
   const porDia = useMemo(() => {
     const mapa = new Map()

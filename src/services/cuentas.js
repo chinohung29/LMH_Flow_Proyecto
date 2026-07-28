@@ -1,18 +1,33 @@
 import { supabase } from './supabaseClient'
 
-export async function listCuentas() {
+export async function listCuentas(empresaId) {
   const { data, error } = await supabase
     .from('cuentas')
     .select('*')
+    .eq('empresa_id', empresaId)
     .order('created_at', { ascending: true })
   if (error) throw error
   return data
 }
 
-export async function createCuenta({ userId, nombre, tipo, saldoInicial = 0, moneda = 'ARS' }) {
+export async function createCuenta({
+  userId,
+  empresaId,
+  nombre,
+  tipo,
+  saldoInicial = 0,
+  moneda = 'ARS',
+}) {
   const { data, error } = await supabase
     .from('cuentas')
-    .insert({ user_id: userId, nombre, tipo, saldo_inicial: saldoInicial, moneda })
+    .insert({
+      user_id: userId,
+      empresa_id: empresaId,
+      nombre,
+      tipo,
+      saldo_inicial: saldoInicial,
+      moneda,
+    })
     .select()
     .single()
   if (error) throw error

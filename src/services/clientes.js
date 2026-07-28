@@ -1,18 +1,19 @@
 import { supabase } from './supabaseClient'
 
-export async function listClientes() {
+export async function listClientes(empresaId) {
   const { data, error } = await supabase
     .from('clientes')
     .select('*')
+    .eq('empresa_id', empresaId)
     .order('nombre', { ascending: true })
   if (error) throw error
   return data
 }
 
-export async function createCliente({ userId, nombre, email, telefono, cuit, notas }) {
+export async function createCliente({ userId, empresaId, nombre, email, telefono, cuit, notas }) {
   const { data, error } = await supabase
     .from('clientes')
-    .insert({ user_id: userId, nombre, email, telefono, cuit, notas })
+    .insert({ user_id: userId, empresa_id: empresaId, nombre, email, telefono, cuit, notas })
     .select()
     .single()
   if (error) throw error

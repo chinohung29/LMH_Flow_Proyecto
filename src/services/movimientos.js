@@ -4,6 +4,7 @@ const SELECT_CON_RELACIONES =
   '*, cuenta:cuentas(id,nombre,tipo,moneda), categoria:categorias(id,nombre,tipo), cliente:clientes(id,nombre), proveedor:proveedores(id,nombre)'
 
 export async function listMovimientos({
+  empresaId,
   desde,
   hasta,
   tipo,
@@ -16,6 +17,7 @@ export async function listMovimientos({
   let query = supabase
     .from('movimientos')
     .select(SELECT_CON_RELACIONES)
+    .eq('empresa_id', empresaId)
     .order('fecha', { ascending: true })
 
   if (desde) query = query.gte('fecha', desde)
@@ -34,6 +36,7 @@ export async function listMovimientos({
 
 export async function createMovimiento({
   userId,
+  empresaId,
   cuentaId,
   categoriaId,
   clienteId,
@@ -49,6 +52,7 @@ export async function createMovimiento({
     .from('movimientos')
     .insert({
       user_id: userId,
+      empresa_id: empresaId,
       cuenta_id: cuentaId,
       categoria_id: categoriaId,
       cliente_id: clienteId,
@@ -82,8 +86,8 @@ export async function deleteMovimiento(id) {
   if (error) throw error
 }
 
-export async function bulkInsertMovimientos(userId, filas) {
-  const rows = filas.map((f) => ({ ...f, user_id: userId }))
+export async function bulkInsertMovimientos(userId, empresaId, filas) {
+  const rows = filas.map((f) => ({ ...f, user_id: userId, empresa_id: empresaId }))
   const { data, error } = await supabase
     .from('movimientos')
     .insert(rows)

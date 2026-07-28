@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../context/AuthContext'
+import { useEmpresa } from '../../context/EmpresaContext'
 import {
   listProveedores,
   createProveedor,
@@ -13,7 +14,8 @@ import { formatCurrency } from '../../utils/format'
 const FORM_INICIAL = { nombre: '', email: '', telefono: '', cuit: '', notas: '' }
 
 export default function Proveedores() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
+  const { empresaActiva } = useEmpresa()
   const [proveedores, setProveedores] = useState([])
   const [movimientos, setMovimientos] = useState([])
   const [loading, setLoading] = useState(true)
@@ -24,14 +26,19 @@ export default function Proveedores() {
   const [guardando, setGuardando] = useState(false)
 
   useEffect(() => {
-    Promise.all([listProveedores(), listMovimientos()])
+    if (!empresaActiva) return
+    setLoading(true)
+    Promise.all([
+      listProveedores(empresaActiva.id),
+      listMovimientos({ empresaId: empresaActiva.id }),
+    ])
       .then(([prov, mov]) => {
         setProveedores(prov)
         setMovimientos(mov)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
-  }, [])
+  }, [empresaActiva?.id])
 
   const statsPorProveedor = useMemo(() => {
     const mapa = new Map()
@@ -46,9 +53,12 @@ export default function Proveedores() {
     return mapa
   }, [movimientos])
 
+  const limiteAlcanzado =
+    !editandoId && profile?.plan === 'starter' && proveedores.length >= 20
+
   async function handleSubmit(e) {
     e.preventDefault()
-    if (!form.nombre) return
+    if (!form.nombre || limiteAlcanzado) return
     setGuardando(true)
     setError('')
     try {
@@ -56,7 +66,11 @@ export default function Proveedores() {
         const actualizado = await updateProveedor(editandoId, form)
         setProveedores((prev) => prev.map((p) => (p.id === editandoId ? actualizado : p)))
       } else {
-        const creado = await createProveedor({ userId: user.id, ...form })
+        const creado = await createProveedor({
+          userId: user.id,
+          empresaId: empresaActiva.id,
+          ...form,
+        })
         setProveedores((prev) =>
           [...prev, creado].sort((a, b) => a.nombre.localeCompare(b.nombre))
         )
@@ -178,8 +192,18 @@ export default function Proveedores() {
                 onChange={(e) => setForm((f) => ({ ...f, notas: e.target.value }))}
               />
             </div>
+            {limiteAlcanzado && (
+              <p className="rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+                Alcanzaste el límite de 20 proveedores del plan Starter. Actualizá tu plan para
+                agregar más.
+              </p>
+            )}
             <div className="flex gap-2">
-              <button type="submit" className="btn-primary flex-1" disabled={guardando}>
+              <button
+                type="submit"
+                className="btn-primary flex-1"
+                disabled={guardando || limiteAlcanzado}
+              >
                 {guardando ? 'Guardando…' : editandoId ? 'Guardar cambios' : 'Agregar proveedor'}
               </button>
               {editandoId && (
