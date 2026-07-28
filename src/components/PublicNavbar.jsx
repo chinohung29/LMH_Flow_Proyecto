@@ -3,7 +3,7 @@ import Logo from './Logo'
 
 export default function PublicNavbar() {
   return (
-    <header className="sticky top-0 z-40 border-b border-metal-800/80 bg-graphite-950/85 backdrop-blur">
+    <header className="sticky top-0 z-40 border-b border-metal-800/80 bg-graphite-950/85 pt-[env(safe-area-inset-top)] backdrop-blur">
       <nav className="mx-auto flex max-w-6xl items-center justify-between px-6 py-4">
         <Link to="/">
           <Logo />

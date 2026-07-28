@@ -430,62 +430,108 @@ export default function Movimientos() {
               Todavía no hay movimientos cargados con estos filtros.
             </p>
           ) : (
-            <div className="mt-4 overflow-x-auto">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-metal-700 text-metal-400">
-                    <th className="py-2 pr-3 font-medium">Fecha</th>
-                    <th className="py-2 pr-3 font-medium">Descripción</th>
-                    <th className="py-2 pr-3 font-medium">Categoría</th>
-                    <th className="py-2 pr-3 font-medium">Cuenta</th>
-                    <th className="py-2 pr-3 text-right font-medium">Monto</th>
-                    <th className="py-2 pr-3 font-medium">Estado</th>
-                    <th className="py-2 font-medium"></th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {movimientosFiltrados.map((m) => (
-                    <tr key={m.id} className="border-b border-metal-800">
-                      <td className="py-2.5 pr-3 text-metal-300">{formatDate(m.fecha)}</td>
-                      <td className="py-2.5 pr-3 text-white">{m.descripcion}</td>
-                      <td className="py-2.5 pr-3 text-metal-300">
-                        {m.categoria?.nombre ?? '—'}
-                      </td>
-                      <td className="py-2.5 pr-3 text-metal-300">{m.cuenta?.nombre ?? '—'}</td>
-                      <td
-                        className={`py-2.5 pr-3 text-right font-medium ${
+            <>
+              {/* Mobile / tablet: tarjetas, evita que la tabla se corte con el sidebar fijo */}
+              <ul className="mt-4 divide-y divide-metal-800 lg:hidden">
+                {movimientosFiltrados.map((m) => (
+                  <li key={m.id} className="flex items-center justify-between gap-3 py-3">
+                    <div className="min-w-0">
+                      <p className="truncate text-sm text-white">{m.descripcion}</p>
+                      <p className="text-xs text-metal-400">
+                        {formatDate(m.fecha)}
+                        {m.categoria?.nombre ? ` · ${m.categoria.nombre}` : ''}
+                        {m.cuenta?.nombre ? ` · ${m.cuenta.nombre}` : ''}
+                      </p>
+                      <button
+                        onClick={() => toggleEstado(m)}
+                        className={`mt-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
+                          m.estado === 'realizado'
+                            ? 'bg-success/15 text-success'
+                            : 'bg-warning/15 text-warning'
+                        }`}
+                      >
+                        {m.estado === 'realizado' ? 'Realizado' : 'Pendiente'}
+                      </button>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <span
+                        className={`text-sm font-medium ${
                           m.tipo === 'ingreso' ? 'text-success' : 'text-danger'
                         }`}
                       >
                         {m.tipo === 'ingreso' ? '+' : '-'}
                         {formatCurrency(m.monto)}
-                      </td>
-                      <td className="py-2.5 pr-3">
-                        <button
-                          onClick={() => toggleEstado(m)}
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            m.estado === 'realizado'
-                              ? 'bg-success/15 text-success'
-                              : 'bg-warning/15 text-warning'
+                      </span>
+                      <button
+                        onClick={() => eliminar(m.id)}
+                        className="text-metal-400 hover:text-danger"
+                        aria-label="Eliminar"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </li>
+                ))}
+              </ul>
+
+              {/* Desktop: tabla completa */}
+              <div className="mt-4 hidden overflow-x-auto lg:block">
+                <table className="w-full text-left text-sm">
+                  <thead>
+                    <tr className="border-b border-metal-700 text-metal-400">
+                      <th className="py-2 pr-3 font-medium">Fecha</th>
+                      <th className="py-2 pr-3 font-medium">Descripción</th>
+                      <th className="py-2 pr-3 font-medium">Categoría</th>
+                      <th className="py-2 pr-3 font-medium">Cuenta</th>
+                      <th className="py-2 pr-3 text-right font-medium">Monto</th>
+                      <th className="py-2 pr-3 font-medium">Estado</th>
+                      <th className="py-2 font-medium"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {movimientosFiltrados.map((m) => (
+                      <tr key={m.id} className="border-b border-metal-800">
+                        <td className="py-2.5 pr-3 text-metal-300">{formatDate(m.fecha)}</td>
+                        <td className="py-2.5 pr-3 text-white">{m.descripcion}</td>
+                        <td className="py-2.5 pr-3 text-metal-300">
+                          {m.categoria?.nombre ?? '—'}
+                        </td>
+                        <td className="py-2.5 pr-3 text-metal-300">{m.cuenta?.nombre ?? '—'}</td>
+                        <td
+                          className={`py-2.5 pr-3 text-right font-medium ${
+                            m.tipo === 'ingreso' ? 'text-success' : 'text-danger'
                           }`}
                         >
-                          {m.estado === 'realizado' ? 'Realizado' : 'Pendiente'}
-                        </button>
-                      </td>
-                      <td className="py-2.5 text-right">
-                        <button
-                          onClick={() => eliminar(m.id)}
-                          className="text-metal-400 hover:text-danger"
-                          aria-label="Eliminar"
-                        >
-                          ✕
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
+                          {m.tipo === 'ingreso' ? '+' : '-'}
+                          {formatCurrency(m.monto)}
+                        </td>
+                        <td className="py-2.5 pr-3">
+                          <button
+                            onClick={() => toggleEstado(m)}
+                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                              m.estado === 'realizado'
+                                ? 'bg-success/15 text-success'
+                                : 'bg-warning/15 text-warning'
+                            }`}
+                          >
+                            {m.estado === 'realizado' ? 'Realizado' : 'Pendiente'}
+                          </button>
+                        </td>
+                        <td className="py-2.5 text-right">
+                          <button
+                            onClick={() => eliminar(m.id)}
+                            className="text-metal-400 hover:text-danger"
+                            aria-label="Eliminar"
+                          >
+                            ✕
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            </>
           )}
         </div>
       </div>
