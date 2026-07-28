@@ -20,6 +20,53 @@ export function descargarMovimientosExcel(movimientos) {
   XLSX.writeFile(libro, `lmh-flow-movimientos-${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
+export function descargarReporteExcel({
+  moneda,
+  categoriasIngreso,
+  categoriasEgreso,
+  clientes,
+  proveedores,
+  evolucion,
+}) {
+  const libro = XLSX.utils.book_new()
+
+  const hojaCategorias = XLSX.utils.json_to_sheet(
+    [
+      ...categoriasIngreso.map((c) => ({ Tipo: 'Ingreso', Categoría: c.categoria, Monto: c.total })),
+      ...categoriasEgreso.map((c) => ({ Tipo: 'Egreso', Categoría: c.categoria, Monto: c.total })),
+    ],
+    { header: ['Tipo', 'Categoría', 'Monto'] }
+  )
+  XLSX.utils.book_append_sheet(libro, hojaCategorias, 'Por categoría')
+
+  const hojaClientes = XLSX.utils.json_to_sheet(
+    clientes.map((c) => ({ Cliente: c.nombre, Facturado: c.total })),
+    { header: ['Cliente', 'Facturado'] }
+  )
+  XLSX.utils.book_append_sheet(libro, hojaClientes, 'Top clientes')
+
+  const hojaProveedores = XLSX.utils.json_to_sheet(
+    proveedores.map((p) => ({ Proveedor: p.nombre, Pagado: p.total })),
+    { header: ['Proveedor', 'Pagado'] }
+  )
+  XLSX.utils.book_append_sheet(libro, hojaProveedores, 'Top proveedores')
+
+  if (evolucion) {
+    const hojaEvolucion = XLSX.utils.json_to_sheet(
+      evolucion.labels.map((label, i) => ({
+        Mes: label,
+        Ingresos: evolucion.ingresos[i],
+        Egresos: evolucion.egresos[i],
+      })),
+      { header: ['Mes', 'Ingresos', 'Egresos'] }
+    )
+    XLSX.utils.book_append_sheet(libro, hojaEvolucion, 'Evolución mensual')
+  }
+
+  const sufijoMoneda = moneda === 'USD' ? 'usd' : 'ars'
+  XLSX.writeFile(libro, `lmh-flow-reportes-${sufijoMoneda}-${new Date().toISOString().slice(0, 10)}.xlsx`)
+}
+
 function normalizarClave(clave) {
   return clave
     .toString()

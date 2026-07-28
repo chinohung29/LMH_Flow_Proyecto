@@ -12,6 +12,7 @@ const NAV_ITEMS = [
   { to: '/clientes', label: 'Clientes', icon: '🧑‍💼' },
   { to: '/proveedores', label: 'Proveedores', icon: '📦' },
   { to: '/simulador', label: 'Simulador', icon: '🧮' },
+  { to: '/reportes', label: 'Reportes', icon: '📑' },
   { to: '/configuracion', label: 'Configuración', icon: '⚙️' },
 ]
 

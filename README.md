@@ -63,8 +63,14 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   UI antes de llegar al límite y también se valida en el backend (función
   `crear_empresa` y triggers en `clientes`/`proveedores`); los planes
   trial y platinum no tienen límite
-- Pendiente: integración con Mercado Pago, IA financiera, reportes
-  avanzados e integración con Odoo
+- Reportes avanzados (`src/pages/Reportes/Reportes.jsx`, exclusivo de
+  planes trial/platinum — plan starter ve un aviso para actualizar):
+  evolución mensual de ingresos vs egresos (últimos 12 meses), desglose
+  de ingresos y egresos por categoría, ranking de clientes por
+  facturación y de proveedores por gasto, todo por moneda y exportable a
+  Excel (`descargarReporteExcel` en `src/utils/excel.js`)
+- Pendiente: integración con Mercado Pago (pausada a pedido del cliente),
+  IA financiera e integración con Odoo
 
 ## Identidad visual
 
@@ -156,5 +162,5 @@ npm run preview
 
 ## Próximos pasos (roadmap)
 
-- **Sprint 4 (resto):** integración con Mercado Pago, IA financiera,
-  reportes avanzados e integración con Odoo
+- **Sprint 4 (resto):** integración con Mercado Pago (pausada por el
+  momento), IA financiera e integración con Odoo

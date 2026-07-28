@@ -10,6 +10,7 @@ import Calendario from './pages/Calendario/Calendario'
 import Clientes from './pages/Clientes/Clientes'
 import Proveedores from './pages/Proveedores/Proveedores'
 import Simulador from './pages/Simulador/Simulador'
+import Reportes from './pages/Reportes/Reportes'
 import Configuracion from './pages/Configuracion/Configuracion'
 import UnirseEmpresa from './pages/UnirseEmpresa/UnirseEmpresa'
 
@@ -34,6 +35,7 @@ export default function App() {
       <Route path="/clientes" element={withProtection(Clientes)} />
       <Route path="/proveedores" element={withProtection(Proveedores)} />
       <Route path="/simulador" element={withProtection(Simulador)} />
+      <Route path="/reportes" element={withProtection(Reportes)} />
       <Route path="/configuracion" element={withProtection(Configuracion)} />
       <Route path="/unirse/:codigo" element={withProtection(UnirseEmpresa)} />
       <Route path="*" element={<Landing />} />
