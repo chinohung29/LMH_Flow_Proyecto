@@ -82,6 +82,7 @@ Deno.serve(async (req: Request) => {
     const mpData = await mpResponse.json()
 
     if (!mpResponse.ok) {
+      console.error('Mercado Pago rechazó la solicitud:', mpResponse.status, JSON.stringify(mpData))
       return new Response(
         JSON.stringify({ error: mpData?.message ?? 'Error al crear la suscripción en Mercado Pago.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
