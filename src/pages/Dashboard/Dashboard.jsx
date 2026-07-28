@@ -96,7 +96,7 @@ export default function Dashboard() {
     <DashboardLayout>
       <div className="mb-6 flex flex-col justify-between gap-2 sm:flex-row sm:items-end">
         <div>
-          <h1 className="text-2xl font-semibold text-white">
+          <h1 className="font-display text-2xl font-semibold text-white">
             Hola{nombre ? `, ${nombre}` : ''} 👋
           </h1>
           <p className="text-metal-300">

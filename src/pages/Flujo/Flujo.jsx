@@ -85,7 +85,7 @@ export default function Flujo() {
     <DashboardLayout>
       <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Flujo de caja</h1>
+          <h1 className="font-display text-2xl font-semibold text-white">Flujo de caja</h1>
           <p className="text-metal-300">Proyección automática a partir de tus movimientos.</p>
         </div>
         <div className="flex rounded-lg border border-metal-600 p-1">

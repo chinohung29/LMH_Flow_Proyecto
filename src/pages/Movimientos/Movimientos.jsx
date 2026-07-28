@@ -172,7 +172,7 @@ export default function Movimientos() {
     <DashboardLayout>
       <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Movimientos</h1>
+          <h1 className="font-display text-2xl font-semibold text-white">Movimientos</h1>
           <p className="text-metal-300">Ingresos y egresos de tu caja.</p>
         </div>
         <div className="flex flex-wrap gap-2">

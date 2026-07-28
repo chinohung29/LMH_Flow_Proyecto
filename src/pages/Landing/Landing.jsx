@@ -83,7 +83,7 @@ export default function Landing() {
           <span className="inline-block rounded-full border border-electric-500/40 bg-electric-500/10 px-4 py-1 text-sm font-medium text-electric-300">
             30 días gratis · Sin tarjeta de crédito
           </span>
-          <h1 className="mt-6 text-4xl font-bold tracking-tight text-white sm:text-5xl">
+          <h1 className="mt-6 font-display text-4xl font-semibold tracking-tight text-white sm:text-5xl">
             Sabé en menos de 10 segundos si vas a tener plata para pagar lo que
             viene.
           </h1>
@@ -109,7 +109,7 @@ export default function Landing() {
 
       <section id="funciones" className="mx-auto max-w-6xl px-6 py-16">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold text-white">Todo lo que necesitás para controlar tu caja</h2>
+          <h2 className="font-display text-3xl font-semibold text-white">Todo lo que necesitás para controlar tu caja</h2>
           <p className="mt-3 text-metal-300">
             Un solo lugar para ver, proyectar y anticipar el movimiento de tu
             dinero.
@@ -128,7 +128,7 @@ export default function Landing() {
 
       <section id="planes" className="mx-auto max-w-5xl px-6 py-16">
         <div className="mx-auto max-w-2xl text-center">
-          <h2 className="text-3xl font-semibold text-white">Planes simples, sin sorpresas</h2>
+          <h2 className="font-display text-3xl font-semibold text-white">Planes simples, sin sorpresas</h2>
           <p className="mt-3 text-metal-300">
             Empezá con 30 días gratis. Sin tarjeta de crédito. Cambiá de plan
             cuando quieras.
@@ -173,7 +173,7 @@ export default function Landing() {
 
       <section className="mx-auto max-w-4xl px-6 py-16 text-center">
         <div className="card">
-          <h2 className="text-2xl font-semibold text-white">
+          <h2 className="font-display text-2xl font-semibold text-white">
             30 días de prueba gratuita, acceso completo
           </h2>
           <p className="mx-auto mt-2 max-w-xl text-metal-300">

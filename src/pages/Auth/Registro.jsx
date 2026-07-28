@@ -48,7 +48,7 @@ export default function Registro() {
         <div className="card">
           {enviado ? (
             <div className="text-center">
-              <h1 className="text-xl font-semibold text-white">Revisá tu email</h1>
+              <h1 className="font-display text-xl font-semibold text-white">Revisá tu email</h1>
               <p className="mt-2 text-sm text-metal-300">
                 Te enviamos un link para confirmar tu cuenta y empezar tu
                 prueba gratuita de 30 días.
@@ -56,7 +56,7 @@ export default function Registro() {
             </div>
           ) : (
             <>
-              <h1 className="text-xl font-semibold text-white">
+              <h1 className="font-display text-xl font-semibold text-white">
                 Creá tu cuenta
               </h1>
               <p className="mt-1 text-sm text-metal-300">

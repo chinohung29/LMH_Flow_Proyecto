@@ -60,7 +60,7 @@ export default function Calendario() {
     <DashboardLayout>
       <div className="mb-6 flex flex-col justify-between gap-3 sm:flex-row sm:items-center">
         <div>
-          <h1 className="text-2xl font-semibold text-white">Calendario</h1>
+          <h1 className="font-display text-2xl font-semibold text-white">Calendario</h1>
           <p className="text-metal-300">Cobros, pagos y vencimientos del mes.</p>
         </div>
         <div className="flex items-center gap-2">

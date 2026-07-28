@@ -33,14 +33,18 @@ Configuración (Sprints 3-4).
 
 ## Identidad visual
 
-Paleta interpretada a partir de la identidad de marca LMH (fondo negro
-grafito, azul eléctrico como color principal, gris metálico para
-superficies), definida en `tailwind.config.js`:
+Paleta muestreada por color directamente del logo oficial (fondo negro
+grafito, azul acero + plateado/cromado del isotipo), definida en
+`tailwind.config.js`:
 
-- `graphite` — fondo (negro grafito)
-- `metal` — superficies, bordes, texto secundario (gris metálico)
-- `electric` — color principal de marca (azul eléctrico)
-- Tipografía: Inter (`@fontsource/inter`, autohospedada para que funcione offline)
+- `graphite` — fondo (calibrado sobre el navy del logo)
+- `metal` — superficies, bordes, texto secundario, incluye tonos plateados
+  (`metal-200`/`metal-100`) tomados del cromado del isotipo
+- `electric` — azul acero de marca; el tono `600` (botones/links) se
+  satura un poco sobre la misma tonalidad para mantener buen contraste
+- Tipografía: Inter para texto de UI (`@fontsource/inter`) + Cinzel para
+  títulos y momentos de marca (`@fontsource/cinzel`, clase `font-display`),
+  buscando el mismo estilo serif elegante del wordmark "Flow-Finance"
 
 **Logo:** se usa el logo oficial de LMH ("LMH Flow-Finance"). El archivo
 fuente era una lámina de presentación (mockup 3D con fondo oscuro), así

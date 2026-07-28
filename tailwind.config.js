@@ -5,33 +5,37 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Fondo negro grafito
+        // Fondo negro grafito (calibrado sobre el navy de fondo del logo)
         graphite: {
-          950: '#0A0C0F',
-          900: '#0F1216',
-          800: '#15181D',
-          700: '#1C2027',
+          950: '#070A0F',
+          900: '#0C0F14',
+          800: '#12161C',
+          700: '#1A1F27',
         },
-        // Gris metálico para superficies (cards, borders, inputs)
+        // Gris metálico / plateado-cromado (tomado del isotipo LMH)
         metal: {
+          900: '#171B21',
           800: '#20242B',
           700: '#2A2F38',
           600: '#3A4048',
           500: '#4E555F',
           400: '#6B7280',
-          300: '#9CA3AF',
+          300: '#9AA4B0',
+          200: '#C6C7C9',
+          100: '#E4E5E7',
         },
-        // Azul eléctrico - color principal de marca
+        // Azul acero del logo. El 600 se satura/aclara sobre la misma tonalidad
+        // para que botones y links mantengan buen contraste sobre el fondo.
         electric: {
-          950: '#031A4D',
-          900: '#052E8F',
-          800: '#0740C4',
-          700: '#0B52E8',
-          600: '#1465FF',
-          500: '#2B7BFF',
-          400: '#5C9AFF',
-          300: '#8FBBFF',
-          200: '#C2DAFF',
+          950: '#0A1826',
+          900: '#0F2338',
+          800: '#142F4E',
+          700: '#1D4568',
+          600: '#2B86EE',
+          500: '#4E9CF2',
+          400: '#7DB6F5',
+          300: '#A9CEF8',
+          200: '#D3E6FB',
         },
         success: '#22C55E',
         warning: '#F59E0B',
@@ -39,9 +43,10 @@ export default {
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        display: ['Cinzel', 'ui-serif', 'serif'],
       },
       boxShadow: {
-        glow: '0 0 24px -6px rgba(43, 123, 255, 0.55)',
+        glow: '0 0 24px -6px rgba(43, 134, 238, 0.55)',
       },
     },
   },

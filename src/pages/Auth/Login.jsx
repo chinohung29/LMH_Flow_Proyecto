@@ -35,7 +35,7 @@ export default function Login() {
           <Logo className="h-11" />
         </Link>
         <div className="card">
-          <h1 className="text-xl font-semibold text-white">Iniciar sesión</h1>
+          <h1 className="font-display text-xl font-semibold text-white">Iniciar sesión</h1>
           <p className="mt-1 text-sm text-metal-300">
             Accedé a tu cuenta de LMH Flow.
           </p>
