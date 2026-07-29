@@ -405,6 +405,8 @@ export default function Movimientos() {
                     >
                       <option value="banco">Banco</option>
                       <option value="caja">Caja</option>
+                      <option value="tarjeta_credito">Tarjeta de crédito</option>
+                      <option value="cheque">Cheque</option>
                     </select>
                     <select
                       className="input-field"

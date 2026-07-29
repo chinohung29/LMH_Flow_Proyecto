@@ -18,7 +18,8 @@ Implementado hasta ahora:
 
 **Sprint 2**
 - Movimientos: alta/edición/baja de ingresos y egresos, con cuentas
-  (banco/caja) y categorías propias por usuario, filtros por tipo/estado
+  (banco/caja/tarjeta de crédito/cheque) y categorías propias por usuario,
+  filtros por tipo/estado
 - Flujo de Caja: proyección diaria/semanal/mensual (Chart.js) calculada a
   partir de los movimientos reales
 - Calendario mensual de cobros, pagos y vencimientos
@@ -177,6 +178,8 @@ npm run dev
      y actualiza `crear_empresa`/`check_limite_clientes`/
      `check_limite_proveedores` para tratar `'cancelado'` igual que
      `'starter'`.
+   - `supabase/schema_sprint4_cuentas_metodos_pago.sql` — suma
+     `'tarjeta_credito'` y `'cheque'` como tipos de cuenta válidos.
 4. En **Authentication → URL Configuration**, configurá el **Site URL**
    con el dominio real donde publiques la app (por ejemplo tu sitio de
    Netlify) y agregalo también a **Redirect URLs** (incluyendo
