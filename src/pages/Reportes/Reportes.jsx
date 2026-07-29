@@ -23,6 +23,7 @@ import {
 } from '../../utils/reportes'
 import { descargarReporteExcel } from '../../utils/excel'
 import { formatCurrency } from '../../utils/format'
+import { tienePlanLimitado } from '../../utils/planes'
 
 ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Legend)
 
@@ -92,7 +93,7 @@ export default function Reportes() {
   const [error, setError] = useState('')
   const [moneda, setMoneda] = useState('ARS')
 
-  const tieneAcceso = profile?.plan !== 'starter'
+  const tieneAcceso = !tienePlanLimitado(profile?.plan)
 
   useEffect(() => {
     if (!empresaActiva || !tieneAcceso) {

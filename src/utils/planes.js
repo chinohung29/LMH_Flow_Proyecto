@@ -10,6 +10,13 @@ export const NOMBRE_PLAN = {
   trial: 'Prueba gratuita',
   starter: 'Starter',
   platinum: 'Platinum',
+  cancelado: 'Sin plan activo',
+}
+
+// 'cancelado' (suscripción vencida sin renovar) recibe los mismos límites
+// que 'starter': 1 empresa, 20 clientes, 20 proveedores, sin Reportes.
+export function tienePlanLimitado(plan) {
+  return plan === 'starter' || plan === 'cancelado'
 }
 
 export async function obtenerTasaOficial() {

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useEmpresa } from '../context/EmpresaContext'
+import { tienePlanLimitado } from '../utils/planes'
 
 export default function EmpresaSwitcher() {
   const { profile } = useAuth()
@@ -14,7 +15,7 @@ export default function EmpresaSwitcher() {
   if (!empresaActiva) return null
 
   const limiteAlcanzado =
-    profile?.plan === 'starter' && empresas.some((e) => e.rol === 'propietario')
+    tienePlanLimitado(profile?.plan) && empresas.some((e) => e.rol === 'propietario')
 
   async function handleCrear(e) {
     e.preventDefault()

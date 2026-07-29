@@ -11,7 +11,7 @@ import {
   crearInvitacion,
   eliminarInvitacion,
 } from '../../services/empresas'
-import { crearSuscripcion } from '../../services/billing'
+import { crearSuscripcion, cancelarSuscripcion } from '../../services/billing'
 import { formatDate, formatCurrency } from '../../utils/format'
 import { PRECIOS_USD, NOMBRE_PLAN, obtenerTasaOficial, calcularPrecioARS } from '../../utils/planes'
 
@@ -23,9 +23,10 @@ const ROLES_LABEL = {
 }
 
 export default function Configuracion() {
-  const { user, profile } = useAuth()
+  const { user, profile, recargarPerfil } = useAuth()
   const { empresaActiva, recargar: recargarEmpresas } = useEmpresa()
   const [suscribiendo, setSuscribiendo] = useState(null)
+  const [cancelando, setCancelando] = useState(false)
   const [errorPlan, setErrorPlan] = useState('')
   const [tasa, setTasa] = useState(null)
   const [miembros, setMiembros] = useState([])
@@ -142,6 +143,26 @@ export default function Configuracion() {
     }
   }
 
+  async function handleCancelar() {
+    if (
+      !window.confirm(
+        'Se va a cancelar la renovación automática en Mercado Pago. Conservás el acceso a tu plan hasta el fin del período que ya pagaste. ¿Confirmás?'
+      )
+    ) {
+      return
+    }
+    setCancelando(true)
+    setErrorPlan('')
+    try {
+      await cancelarSuscripcion()
+      await recargarPerfil()
+    } catch (err) {
+      setErrorPlan(err.message)
+    } finally {
+      setCancelando(false)
+    }
+  }
+
   return (
     <DashboardLayout>
       <div className="mb-6">
@@ -160,6 +181,33 @@ export default function Configuracion() {
         <p className="mt-1 text-sm text-metal-300">
           Tu plan actual: <span className="text-white">{NOMBRE_PLAN[profile?.plan] ?? profile?.plan}</span>
         </p>
+
+        {profile?.plan_vence_el && (
+          <p className="mt-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
+            Cancelaste la renovación automática. Conservás el acceso a tu plan hasta el{' '}
+            {formatDate(profile.plan_vence_el)}.
+          </p>
+        )}
+
+        {profile?.plan === 'cancelado' && (
+          <p className="mt-2 rounded-lg border border-metal-700 bg-graphite-800 px-3 py-2 text-xs text-metal-300">
+            No tenés un plan activo. Podés volver a suscribirte cuando quieras (sin el mes de
+            prueba gratuita, que ya usaste).
+          </p>
+        )}
+
+        {(profile?.plan === 'starter' || profile?.plan === 'platinum') &&
+          profile?.mp_preapproval_id &&
+          !profile?.plan_vence_el && (
+            <button
+              type="button"
+              onClick={handleCancelar}
+              disabled={cancelando}
+              className="mt-2 text-xs font-medium text-metal-400 hover:text-danger"
+            >
+              {cancelando ? 'Cancelando…' : 'Cancelar suscripción'}
+            </button>
+          )}
 
         {errorPlan && (
           <p className="mt-3 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">

@@ -91,8 +91,24 @@ Deno.serve(async (req: Request) => {
     }
   }
 
+  // Suscripciones canceladas cuyo período ya pagado venció: se bajan a
+  // 'cancelado' (mismos límites que 'starter', sin acceso a Reportes ni
+  // a un nuevo trial).
+  const { data: vencidos, error: errorVencidos } = await supabase
+    .from('profiles')
+    .update({ plan: 'cancelado', plan_vence_el: null })
+    .lte('plan_vence_el', new Date().toISOString())
+    .in('plan', ['starter', 'platinum'])
+    .select('id')
+
   return new Response(
-    JSON.stringify({ tasa, total: suscriptores?.length ?? 0, actualizados, fallidos }),
+    JSON.stringify({
+      tasa,
+      total: suscriptores?.length ?? 0,
+      actualizados,
+      fallidos,
+      bajados_por_vencimiento: errorVencidos ? null : vencidos?.length ?? 0,
+    }),
     { headers: { 'Content-Type': 'application/json' } }
   )
 })

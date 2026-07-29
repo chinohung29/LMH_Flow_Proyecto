@@ -72,9 +72,12 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   facturación y de proveedores por gasto, todo por moneda y exportable a
   Excel (`descargarReporteExcel` en `src/utils/excel.js`)
 - Suscripciones pagas de LMH Flow vía Mercado Pago (cobro recurrente en
-  ARS — ver sección **Cobros con Mercado Pago** más abajo): desde
-  Configuración, el usuario elige Starter o Platinum y paga con Mercado
-  Pago; un webhook activa el plan automáticamente
+  ARS al dólar oficial del día — ver sección **Cobros con Mercado Pago**
+  más abajo): desde Configuración, el usuario elige Starter o Platinum y
+  paga con Mercado Pago; un webhook activa el plan automáticamente, y
+  puede cancelar la renovación cuando quiera (conserva el acceso hasta
+  el fin del período ya pagado, y no recupera el mes de prueba gratuita
+  si vuelve a suscribirse después)
 - Pendiente: integración de Mercado Pago para que cada cliente importe
   sus propias ventas (era la otra idea original, se priorizó primero
   cobrar los planes de LMH Flow), IA financiera e integración con Odoo
@@ -161,6 +164,11 @@ npm run dev
    - `supabase/schema_sprint4_mp_dolar_cron.sql` — programa el reajuste
      diario de precios (`pg_cron`/`pg_net`). Editar el placeholder del
      secret antes de correrlo (ver sección de Mercado Pago más abajo).
+   - `supabase/schema_sprint4_cancelacion.sql` — columna
+     `profiles.plan_vence_el`, plan `'cancelado'` en el check constraint,
+     y actualiza `crear_empresa`/`check_limite_clientes`/
+     `check_limite_proveedores` para tratar `'cancelado'` igual que
+     `'starter'`.
 4. En **Authentication → URL Configuration**, configurá el **Site URL**
    con el dominio real donde publiques la app (por ejemplo tu sitio de
    Netlify) y agregalo también a **Redirect URLs** (incluyendo
@@ -195,9 +203,22 @@ Supabase:
   `pg_cron` (migración `supabase/schema_sprint4_mp_dolar_cron.sql`) y
   actualiza (`PUT /preapproval/{id}`) el monto en ARS de cada suscripción
   ya activa según la cotización de ese día, para que el precio en pesos
-  de los que ya pagan seguido acompañe al dólar. Está protegida con un
-  secret compartido (`CRON_SECRET`) en vez de JWT, porque la llama
-  `pg_cron` y no un usuario logueado.
+  de los que ya pagan seguido acompañe al dólar. También baja a
+  `plan='cancelado'` a quienes cancelaron y ya pasó su
+  `plan_vence_el`. Está protegida con un secret compartido
+  (`CRON_SECRET`) en vez de JWT, porque la llama `pg_cron` y no un
+  usuario logueado.
+- `supabase/functions/mp-cancelar-suscripcion` — desde el botón "Cancelar
+  suscripción" en Configuración: cancela el preapproval en Mercado Pago
+  (`status: cancelled`) pero el usuario conserva el plan actual hasta el
+  `next_payment_date` que ya tenía pago (`profiles.plan_vence_el`); no
+  pierde el acceso al toque.
+
+Un usuario que cancela y después decide volver a suscribirse **no
+recupera el mes de prueba gratuita**: `trial_ends_at` se define una sola
+vez al registrarse y ningún flujo lo vuelve a tocar, y al vencer
+`plan_vence_el` el plan pasa a `'cancelado'` (mismos límites que
+`'starter'`) en vez de volver a `'trial'`.
 
 Para que funcione hace falta, una sola vez:
 

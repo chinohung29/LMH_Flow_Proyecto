@@ -10,6 +10,7 @@ import {
 } from '../../services/proveedores'
 import { listMovimientos } from '../../services/movimientos'
 import { formatCurrency } from '../../utils/format'
+import { tienePlanLimitado } from '../../utils/planes'
 
 const FORM_INICIAL = { nombre: '', email: '', telefono: '', cuit: '', notas: '' }
 
@@ -54,7 +55,7 @@ export default function Proveedores() {
   }, [movimientos])
 
   const limiteAlcanzado =
-    !editandoId && profile?.plan === 'starter' && proveedores.length >= 20
+    !editandoId && tienePlanLimitado(profile?.plan) && proveedores.length >= 20
 
   async function handleSubmit(e) {
     e.preventDefault()

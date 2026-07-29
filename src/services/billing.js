@@ -1,13 +1,19 @@
 import { supabase } from './supabaseClient'
 
-export async function crearSuscripcion(plan) {
-  const { data, error } = await supabase.functions.invoke('mp-crear-suscripcion', {
-    body: { plan },
-  })
+async function invocar(nombre, body) {
+  const { data, error } = await supabase.functions.invoke(nombre, { body })
   if (error) {
     const detalle = await error.context?.json?.().catch(() => null)
     throw new Error(detalle?.error ?? error.message)
   }
   if (data?.error) throw new Error(data.error)
   return data
+}
+
+export function crearSuscripcion(plan) {
+  return invocar('mp-crear-suscripcion', { plan })
+}
+
+export function cancelarSuscripcion() {
+  return invocar('mp-cancelar-suscripcion', {})
 }
