@@ -84,16 +84,13 @@ Deno.serve(async (req: Request) => {
     try {
       mpData = JSON.parse(mpTexto)
     } catch {
-      // Respuesta no-JSON de Mercado Pago, se muestra el texto crudo abajo.
+      // Respuesta no-JSON de Mercado Pago (se loguea el texto crudo si falla).
     }
 
     if (!mpResponse.ok) {
-      // DEBUG temporal: se devuelve la respuesta cruda de Mercado Pago para
-      // diagnosticar el rechazo. Revertir a un mensaje genérico una vez resuelto.
+      console.error('Mercado Pago rechazó la solicitud:', mpResponse.status, mpTexto)
       return new Response(
-        JSON.stringify({
-          error: `DEBUG MP ${mpResponse.status}: ${mpData ? JSON.stringify(mpData) : mpTexto}`,
-        }),
+        JSON.stringify({ error: mpData?.message ?? 'Error al crear la suscripción en Mercado Pago.' }),
         { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
