@@ -96,6 +96,15 @@ export function agruparFlujo(movimientos, cuentas, vista = 'diario') {
     cursorEventos++
   }
 
+  // Saldo de hoy: independiente de la ventana del gráfico (que arranca
+  // `antesDias` atrás), es el saldo inicial + todos los movimientos hasta
+  // hoy inclusive.
+  let saldoHoy = saldoInicial
+  for (const evento of eventos) {
+    if (evento.fecha > hoy) break
+    saldoHoy += evento.delta
+  }
+
   const buckets = generarBuckets(desde, hasta, vista)
   const labels = []
   const saldos = []
@@ -111,5 +120,5 @@ export function agruparFlujo(movimientos, cuentas, vista = 'diario') {
     saldos.push(Math.round(saldoActual))
   }
 
-  return { labels, saldos, saldoHoy: Math.round(saldoArrastrado) }
+  return { labels, saldos, saldoHoy: Math.round(saldoHoy) }
 }
