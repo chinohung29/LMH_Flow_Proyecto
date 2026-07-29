@@ -156,6 +156,11 @@ npm run dev
    - `supabase/schema_sprint4_limites.sql` — límites de plan Starter (1
      empresa, 20 clientes/proveedores) en la función `crear_empresa` y en
      triggers de `clientes`/`proveedores`.
+   - `supabase/schema_sprint4_mercadopago.sql` — columna
+     `profiles.mp_preapproval_id`.
+   - `supabase/schema_sprint4_mp_dolar_cron.sql` — programa el reajuste
+     diario de precios (`pg_cron`/`pg_net`). Editar el placeholder del
+     secret antes de correrlo (ver sección de Mercado Pago más abajo).
 4. En **Authentication → URL Configuration**, configurá el **Site URL**
    con el dominio real donde publiques la app (por ejemplo tu sitio de
    Netlify) y agregalo también a **Redirect URLs** (incluyendo
@@ -170,38 +175,57 @@ un aviso en pantalla cuando falta la configuración.
 
 Desde **Configuración → Plan y facturación**, el usuario elige un plan y
 Mercado Pago le cobra automáticamente todos los meses (Preapproval /
-Suscripciones). El flujo vive en dos Edge Functions ya desplegadas en el
-proyecto de Supabase:
+Suscripciones). Los planes se definen en USD (`US$15`/`US$30` por mes,
+`PRECIOS_USD` en `src/utils/planes.js`) pero Mercado Pago solo admite
+cobro recurrente en ARS para cuentas de Argentina, así que el monto se
+calcula en pesos al **tipo de cambio oficial del día** (fuente:
+[dolarapi.com](https://dolarapi.com), sin necesidad de API key). El
+flujo vive en tres Edge Functions ya desplegadas en el proyecto de
+Supabase:
 
-- `supabase/functions/mp-crear-suscripcion` — crea el preapproval en
-  Mercado Pago y devuelve el link de pago (`init_point`) al que se
-  redirige al usuario.
+- `supabase/functions/mp-crear-suscripcion` — consulta la cotización
+  oficial del momento, crea el preapproval en Mercado Pago por el
+  equivalente en ARS y devuelve el link de pago (`init_point`) al que
+  se redirige al usuario.
 - `supabase/functions/mp-webhook` — recibe la notificación de Mercado
   Pago, vuelve a consultar el estado real del preapproval contra la API
   (nunca confía en el payload entrante) y si está `authorized` activa el
   plan en `profiles.plan`.
+- `supabase/functions/mp-reajustar-precios` — corre una vez por día vía
+  `pg_cron` (migración `supabase/schema_sprint4_mp_dolar_cron.sql`) y
+  actualiza (`PUT /preapproval/{id}`) el monto en ARS de cada suscripción
+  ya activa según la cotización de ese día, para que el precio en pesos
+  de los que ya pagan seguido acompañe al dólar. Está protegida con un
+  secret compartido (`CRON_SECRET`) en vez de JWT, porque la llama
+  `pg_cron` y no un usuario logueado.
 
 Para que funcione hace falta, una sola vez:
 
 1. En [Mercado Pago Developers](https://www.mercadopago.com.ar/developers/panel),
    crear una aplicación y conseguir el **Access Token de producción**
    (Tus integraciones → tu app → Credenciales de producción).
-2. Cargar ese token como secret en el proyecto de Supabase — **Project
-   Settings → Edge Functions → Secrets** — con el nombre `MP_ACCESS_TOKEN`
-   (nunca commitear este valor al repo ni pegarlo en un chat).
-3. En la misma aplicación de Mercado Pago, configurar la **URL de
-   notificaciones/webhooks** apuntando a:
+2. Cargar ese token como secret en el proyecto de Supabase — **Edge
+   Functions → Secrets** — con el nombre `MP_ACCESS_TOKEN` (nunca
+   commitear este valor al repo ni pegarlo en un chat).
+3. Cargar también el secret `CRON_SECRET` (un valor random propio, no
+   relacionado con Mercado Pago) — tiene que ser exactamente el mismo
+   valor que el que quedó embebido en el `net.http_post` de la migración
+   `schema_sprint4_mp_dolar_cron.sql` al aplicarla.
+4. En la misma aplicación de Mercado Pago, configurar la **URL de
+   notificaciones/webhooks** en **modo productivo** apuntando a:
    ```
    https://oxfkdioubobqttdyxcfn.supabase.co/functions/v1/mp-webhook
    ```
-4. (Opcional) Setear el secret `APP_URL` con el dominio real de Netlify
+   con el evento **"Planes y suscripciones"** tildado.
+5. (Opcional) Setear el secret `APP_URL` con el dominio real de Netlify
    si cambia — se usa para armar el link de vuelta (`back_url`) al
    terminar el pago; por defecto apunta a `lmh-flowfinance.netlify.app`.
 
-Los precios (`$15.000`/`$30.000` ARS por mes) son un valor placeholder
-definido en `supabase/functions/mp-crear-suscripcion/index.ts` y en
-`src/utils/planes.js` (deben mantenerse sincronizados); ajustarlos ahí
-cuando se defina el precio real.
+**Importante:** al probar el checkout con tu propia cuenta de Mercado
+Pago, usá un comprador distinto del vendedor (cuenta real vs. cuenta de
+prueba, o un email diferente) — Mercado Pago rechaza la suscripción si
+el pagador y el cobrador son la misma cuenta o si uno es de prueba y el
+otro real.
 
 ### Build de producción
 

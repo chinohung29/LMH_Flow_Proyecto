@@ -13,7 +13,7 @@ import {
 } from '../../services/empresas'
 import { crearSuscripcion } from '../../services/billing'
 import { formatDate, formatCurrency } from '../../utils/format'
-import { PRECIOS_ARS, NOMBRE_PLAN } from '../../utils/planes'
+import { PRECIOS_USD, NOMBRE_PLAN, obtenerTasaOficial, calcularPrecioARS } from '../../utils/planes'
 
 const ROLES_LABEL = {
   propietario: 'Propietario',
@@ -27,6 +27,7 @@ export default function Configuracion() {
   const { empresaActiva, recargar: recargarEmpresas } = useEmpresa()
   const [suscribiendo, setSuscribiendo] = useState(null)
   const [errorPlan, setErrorPlan] = useState('')
+  const [tasa, setTasa] = useState(null)
   const [miembros, setMiembros] = useState([])
   const [invitaciones, setInvitaciones] = useState([])
   const [loading, setLoading] = useState(true)
@@ -41,6 +42,12 @@ export default function Configuracion() {
 
   const puedeAdministrar =
     empresaActiva?.rol === 'propietario' || empresaActiva?.rol === 'administrador'
+
+  useEffect(() => {
+    obtenerTasaOficial()
+      .then(setTasa)
+      .catch(() => setTasa(null))
+  }, [])
 
   useEffect(() => {
     if (!empresaActiva) return
@@ -164,7 +171,13 @@ export default function Configuracion() {
           {['starter', 'platinum'].map((plan) => (
             <div key={plan} className="rounded-xl border border-metal-700 p-4">
               <p className="font-medium text-white">{NOMBRE_PLAN[plan]}</p>
-              <p className="text-sm text-metal-400">{formatCurrency(PRECIOS_ARS[plan], 'ARS')} / mes</p>
+              <p className="text-sm text-metal-400">
+                US$ {PRECIOS_USD[plan]} / mes
+                {tasa && ` · ≈ ${formatCurrency(calcularPrecioARS(PRECIOS_USD[plan], tasa), 'ARS')}`}
+              </p>
+              <p className="text-xs text-metal-500">
+                Se cobra en pesos al tipo de cambio oficial del día de la suscripción.
+              </p>
               {profile?.plan === plan ? (
                 <p className="mt-3 text-xs font-medium text-electric-400">Tu plan actual</p>
               ) : (
