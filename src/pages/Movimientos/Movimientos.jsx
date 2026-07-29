@@ -44,6 +44,7 @@ export default function Movimientos() {
 
   const [form, setForm] = useState(FORM_INICIAL)
   const [guardando, setGuardando] = useState(false)
+  const [editandoId, setEditandoId] = useState(null)
 
   const [filtroTipo, setFiltroTipo] = useState('todos')
   const [filtroEstado, setFiltroEstado] = useState('todos')
@@ -116,27 +117,71 @@ export default function Movimientos() {
     setGuardando(true)
     setError('')
     try {
-      const nuevo = await createMovimiento({
-        userId: user.id,
-        empresaId: empresaActiva.id,
-        cuentaId: form.cuentaId || null,
-        categoriaId: form.categoriaId || null,
-        clienteId: form.clienteId || null,
-        proveedorId: form.proveedorId || null,
-        tipo: form.tipo,
-        descripcion: form.descripcion,
-        monto,
-        fecha: form.fecha,
-        estado: form.estado,
-        moneda: cuentaSeleccionada?.moneda ?? form.moneda,
-      })
-      setMovimientos((prev) => [...prev, nuevo].sort((a, b) => a.fecha.localeCompare(b.fecha)))
+      if (editandoId) {
+        const actualizado = await updateMovimiento(editandoId, {
+          cuenta_id: form.cuentaId || null,
+          categoria_id: form.categoriaId || null,
+          cliente_id: form.clienteId || null,
+          proveedor_id: form.proveedorId || null,
+          tipo: form.tipo,
+          descripcion: form.descripcion,
+          monto,
+          fecha: form.fecha,
+          estado: form.estado,
+          moneda: cuentaSeleccionada?.moneda ?? form.moneda,
+        })
+        setMovimientos((prev) =>
+          prev
+            .map((m) => (m.id === editandoId ? actualizado : m))
+            .sort((a, b) => a.fecha.localeCompare(b.fecha))
+        )
+        setEditandoId(null)
+      } else {
+        const nuevo = await createMovimiento({
+          userId: user.id,
+          empresaId: empresaActiva.id,
+          cuentaId: form.cuentaId || null,
+          categoriaId: form.categoriaId || null,
+          clienteId: form.clienteId || null,
+          proveedorId: form.proveedorId || null,
+          tipo: form.tipo,
+          descripcion: form.descripcion,
+          monto,
+          fecha: form.fecha,
+          estado: form.estado,
+          moneda: cuentaSeleccionada?.moneda ?? form.moneda,
+        })
+        setMovimientos((prev) => [...prev, nuevo].sort((a, b) => a.fecha.localeCompare(b.fecha)))
+      }
       setForm((f) => ({ ...FORM_INICIAL, cuentaId: f.cuentaId, tipo: f.tipo, moneda: f.moneda }))
     } catch (err) {
       setError(err.message)
     } finally {
       setGuardando(false)
     }
+  }
+
+  function editar(mov) {
+    setEditandoId(mov.id)
+    setForm({
+      tipo: mov.tipo,
+      descripcion: mov.descripcion,
+      monto: String(mov.monto),
+      fecha: mov.fecha,
+      cuentaId: mov.cuenta_id ?? '',
+      categoriaId: mov.categoria_id ?? '',
+      clienteId: mov.cliente_id ?? '',
+      proveedorId: mov.proveedor_id ?? '',
+      estado: mov.estado,
+      moneda: mov.moneda,
+    })
+    setMostrarCuentaForm(false)
+    setMostrarCategoriaForm(false)
+  }
+
+  function cancelarEdicion() {
+    setEditandoId(null)
+    setForm(FORM_INICIAL)
   }
 
   async function toggleEstado(mov) {
@@ -226,7 +271,9 @@ export default function Movimientos() {
 
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="card lg:col-span-1">
-          <h2 className="font-semibold text-white">Nuevo movimiento</h2>
+          <h2 className="font-semibold text-white">
+            {editandoId ? 'Editar movimiento' : 'Nuevo movimiento'}
+          </h2>
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <div className="flex rounded-lg border border-metal-600 p-1">
               {['ingreso', 'egreso'].map((tipo) => (
@@ -510,9 +557,20 @@ export default function Movimientos() {
               </select>
             </div>
 
-            <button type="submit" className="btn-primary w-full" disabled={guardando}>
-              {guardando ? 'Guardando…' : 'Agregar movimiento'}
-            </button>
+            <div className="flex gap-2">
+              <button type="submit" className="btn-primary flex-1" disabled={guardando}>
+                {guardando
+                  ? 'Guardando…'
+                  : editandoId
+                    ? 'Guardar cambios'
+                    : 'Agregar movimiento'}
+              </button>
+              {editandoId && (
+                <button type="button" className="btn-secondary" onClick={cancelarEdicion}>
+                  Cancelar
+                </button>
+              )}
+            </div>
           </form>
         </div>
 
@@ -582,7 +640,7 @@ export default function Movimientos() {
                         {m.estado === 'realizado' ? 'Realizado' : 'Pendiente'}
                       </button>
                     </div>
-                    <div className="flex shrink-0 items-center gap-3">
+                    <div className="flex shrink-0 flex-col items-end gap-1.5">
                       <span
                         className={`text-sm font-medium ${
                           m.tipo === 'ingreso' ? 'text-success' : 'text-danger'
@@ -591,13 +649,21 @@ export default function Movimientos() {
                         {m.tipo === 'ingreso' ? '+' : '-'}
                         {formatCurrency(m.monto, m.moneda)}
                       </span>
-                      <button
-                        onClick={() => eliminar(m.id)}
-                        className="text-metal-400 hover:text-danger"
-                        aria-label="Eliminar"
-                      >
-                        ✕
-                      </button>
+                      <div className="flex items-center gap-2 text-xs">
+                        <button
+                          onClick={() => editar(m)}
+                          className="text-electric-400 hover:text-electric-300"
+                        >
+                          Editar
+                        </button>
+                        <button
+                          onClick={() => eliminar(m.id)}
+                          className="text-metal-400 hover:text-danger"
+                          aria-label="Eliminar"
+                        >
+                          Eliminar
+                        </button>
+                      </div>
                     </div>
                   </li>
                 ))}
@@ -647,13 +713,20 @@ export default function Movimientos() {
                           </button>
                         </td>
                         <td className="py-2.5 text-right">
-                          <button
-                            onClick={() => eliminar(m.id)}
-                            className="text-metal-400 hover:text-danger"
-                            aria-label="Eliminar"
-                          >
-                            ✕
-                          </button>
+                          <div className="flex items-center justify-end gap-3 text-xs">
+                            <button
+                              onClick={() => editar(m)}
+                              className="text-electric-400 hover:text-electric-300"
+                            >
+                              Editar
+                            </button>
+                            <button
+                              onClick={() => eliminar(m.id)}
+                              className="text-metal-400 hover:text-danger"
+                            >
+                              Eliminar
+                            </button>
+                          </div>
                         </td>
                       </tr>
                     ))}

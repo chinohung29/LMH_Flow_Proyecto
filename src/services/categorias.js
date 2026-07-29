@@ -20,6 +20,17 @@ export async function createCategoria({ userId, empresaId, nombre, tipo }) {
   return data
 }
 
+export async function updateCategoria(id, patch) {
+  const { data, error } = await supabase
+    .from('categorias')
+    .update(patch)
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function deleteCategoria(id) {
   const { error } = await supabase.from('categorias').delete().eq('id', id)
   if (error) throw error

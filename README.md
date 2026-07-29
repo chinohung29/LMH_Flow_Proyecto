@@ -78,6 +78,14 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   puede cancelar la renovación cuando quiera (conserva el acceso hasta
   el fin del período ya pagado, y no recupera el mes de prueba gratuita
   si vuelve a suscribirse después)
+- Página Categorías (`src/pages/Categorias/Categorias.jsx`): listado de
+  las categorías de ingreso/egreso (arrancan con las básicas sembradas
+  al crear la empresa), con alta, edición y baja; eliminar una categoría
+  no borra los movimientos que la usaban, solo les saca la categoría
+- Movimientos: además de eliminar y marcar pendiente/realizado, ahora se
+  puede editar cualquier campo de un movimiento ya cargado (tipo,
+  descripción, monto, fecha, cuenta, categoría, cliente/proveedor,
+  estado) por si se cargó algo mal
 - Pendiente: integración de Mercado Pago para que cada cliente importe
   sus propias ventas (era la otra idea original, se priorizó primero
   cobrar los planes de LMH Flow), IA financiera e integración con Odoo

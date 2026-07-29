@@ -7,6 +7,7 @@ import OlvidePassword from './pages/Auth/OlvidePassword'
 import RestablecerPassword from './pages/Auth/RestablecerPassword'
 import Dashboard from './pages/Dashboard/Dashboard'
 import Movimientos from './pages/Movimientos/Movimientos'
+import Categorias from './pages/Categorias/Categorias'
 import Flujo from './pages/Flujo/Flujo'
 import Calendario from './pages/Calendario/Calendario'
 import Clientes from './pages/Clientes/Clientes'
@@ -34,6 +35,7 @@ export default function App() {
       <Route path="/restablecer-password" element={<RestablecerPassword />} />
       <Route path="/dashboard" element={withProtection(Dashboard)} />
       <Route path="/movimientos" element={withProtection(Movimientos)} />
+      <Route path="/categorias" element={withProtection(Categorias)} />
       <Route path="/flujo" element={withProtection(Flujo)} />
       <Route path="/calendario" element={withProtection(Calendario)} />
       <Route path="/clientes" element={withProtection(Clientes)} />
