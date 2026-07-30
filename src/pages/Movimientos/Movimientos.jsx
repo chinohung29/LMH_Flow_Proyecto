@@ -579,7 +579,7 @@ export default function Movimientos() {
         <div className="card lg:col-span-2">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <h2 className="font-semibold text-white">Historial</h2>
-            <div className="flex gap-2">
+            <div className="flex flex-wrap gap-2">
               <select
                 className="input-field !w-auto text-sm"
                 value={filtroTipo}
