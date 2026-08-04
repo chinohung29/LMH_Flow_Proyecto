@@ -189,7 +189,7 @@ export default function Landing() {
       <footer className="border-t border-metal-800 py-8 text-center text-sm text-metal-500">
         <div className="mb-4 flex items-center justify-center gap-5">
           <a
-            href="https://wa.me/541172734119"
+            href="https://wa.me/541173724119"
             target="_blank"
             rel="noopener noreferrer"
             aria-label="WhatsApp"
