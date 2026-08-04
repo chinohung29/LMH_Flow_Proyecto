@@ -20,51 +20,97 @@ export function descargarMovimientosExcel(movimientos) {
   XLSX.writeFile(libro, `lmh-flow-movimientos-${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
-export function descargarReporteExcel({
+function descargarBuffer(buffer, nombreArchivo) {
+  const blob = new Blob([buffer], {
+    type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+  })
+  const url = URL.createObjectURL(blob)
+  const enlace = document.createElement('a')
+  enlace.href = url
+  enlace.download = nombreArchivo
+  enlace.click()
+  URL.revokeObjectURL(url)
+}
+
+/**
+ * `graficos` es un array de { titulo, base64 } con capturas PNG (data URL)
+ * de los gráficos ya renderizados en pantalla (via chart.toBase64Image()),
+ * que se insertan como imágenes en una hoja aparte — xlsx (SheetJS free)
+ * no soporta incrustar gráficos nativos de Excel, así que usamos exceljs
+ * para poder al menos incrustarlos como imagen.
+ */
+export async function descargarReporteExcel({
   moneda,
   categoriasIngreso,
   categoriasEgreso,
   clientes,
   proveedores,
   evolucion,
+  graficos = [],
 }) {
-  const libro = XLSX.utils.book_new()
+  const { default: ExcelJS } = await import('exceljs')
+  const libro = new ExcelJS.Workbook()
 
-  const hojaCategorias = XLSX.utils.json_to_sheet(
-    [
-      ...categoriasIngreso.map((c) => ({ Tipo: 'Ingreso', Categoría: c.categoria, Monto: c.total })),
-      ...categoriasEgreso.map((c) => ({ Tipo: 'Egreso', Categoría: c.categoria, Monto: c.total })),
-    ],
-    { header: ['Tipo', 'Categoría', 'Monto'] }
-  )
-  XLSX.utils.book_append_sheet(libro, hojaCategorias, 'Por categoría')
-
-  const hojaClientes = XLSX.utils.json_to_sheet(
-    clientes.map((c) => ({ Cliente: c.nombre, Facturado: c.total })),
-    { header: ['Cliente', 'Facturado'] }
-  )
-  XLSX.utils.book_append_sheet(libro, hojaClientes, 'Top clientes')
-
-  const hojaProveedores = XLSX.utils.json_to_sheet(
-    proveedores.map((p) => ({ Proveedor: p.nombre, Pagado: p.total })),
-    { header: ['Proveedor', 'Pagado'] }
-  )
-  XLSX.utils.book_append_sheet(libro, hojaProveedores, 'Top proveedores')
-
-  if (evolucion) {
-    const hojaEvolucion = XLSX.utils.json_to_sheet(
-      evolucion.labels.map((label, i) => ({
-        Mes: label,
-        Ingresos: evolucion.ingresos[i],
-        Egresos: evolucion.egresos[i],
-      })),
-      { header: ['Mes', 'Ingresos', 'Egresos'] }
-    )
-    XLSX.utils.book_append_sheet(libro, hojaEvolucion, 'Evolución mensual')
+  if (graficos.length > 0) {
+    const hojaGraficos = libro.addWorksheet('Gráficos')
+    let filaActual = 1
+    for (const { titulo, base64 } of graficos) {
+      if (!base64) continue
+      hojaGraficos.getCell(`A${filaActual}`).value = titulo
+      hojaGraficos.getCell(`A${filaActual}`).font = { bold: true, size: 12 }
+      const imagenId = libro.addImage({ base64, extension: 'png' })
+      hojaGraficos.addImage(imagenId, {
+        tl: { col: 0, row: filaActual },
+        ext: { width: 640, height: 320 },
+      })
+      filaActual += 18
+    }
   }
 
+  const hojaCategorias = libro.addWorksheet('Por categoría')
+  hojaCategorias.columns = [
+    { header: 'Tipo', key: 'tipo', width: 12 },
+    { header: 'Categoría', key: 'categoria', width: 24 },
+    { header: 'Monto', key: 'monto', width: 16 },
+  ]
+  hojaCategorias.addRows([
+    ...categoriasIngreso.map((c) => ({ tipo: 'Ingreso', categoria: c.categoria, monto: c.total })),
+    ...categoriasEgreso.map((c) => ({ tipo: 'Egreso', categoria: c.categoria, monto: c.total })),
+  ])
+
+  const hojaClientes = libro.addWorksheet('Top clientes')
+  hojaClientes.columns = [
+    { header: 'Cliente', key: 'cliente', width: 28 },
+    { header: 'Facturado', key: 'facturado', width: 16 },
+  ]
+  hojaClientes.addRows(clientes.map((c) => ({ cliente: c.nombre, facturado: c.total })))
+
+  const hojaProveedores = libro.addWorksheet('Top proveedores')
+  hojaProveedores.columns = [
+    { header: 'Proveedor', key: 'proveedor', width: 28 },
+    { header: 'Pagado', key: 'pagado', width: 16 },
+  ]
+  hojaProveedores.addRows(proveedores.map((p) => ({ proveedor: p.nombre, pagado: p.total })))
+
+  if (evolucion) {
+    const hojaEvolucion = libro.addWorksheet('Evolución mensual')
+    hojaEvolucion.columns = [
+      { header: 'Mes', key: 'mes', width: 12 },
+      { header: 'Ingresos', key: 'ingresos', width: 16 },
+      { header: 'Egresos', key: 'egresos', width: 16 },
+    ]
+    hojaEvolucion.addRows(
+      evolucion.labels.map((label, i) => ({
+        mes: label,
+        ingresos: evolucion.ingresos[i],
+        egresos: evolucion.egresos[i],
+      }))
+    )
+  }
+
+  const buffer = await libro.xlsx.writeBuffer()
   const sufijoMoneda = moneda === 'USD' ? 'usd' : 'ars'
-  XLSX.writeFile(libro, `lmh-flow-reportes-${sufijoMoneda}-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  descargarBuffer(buffer, `lmh-flow-reportes-${sufijoMoneda}-${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
 function normalizarClave(clave) {

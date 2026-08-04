@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { forwardRef, useEffect, useMemo, useRef, useState } from 'react'
 import {
   Chart as ChartJS,
   CategoryScale,
@@ -30,7 +30,7 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Le
 const NOMBRE_MONEDA = { ARS: '$', USD: 'US$' }
 const COLORES = ['#2B86EE', '#7C9CBF', '#4ADE80', '#FBBF24', '#F87171', '#A78BFA', '#34D399', '#F472B6']
 
-function Doughnut2({ datos, moneda }) {
+const Doughnut2 = forwardRef(function Doughnut2({ datos, moneda }, ref) {
   if (datos.length === 0) {
     return <p className="text-sm text-metal-500">Sin datos todavía.</p>
   }
@@ -54,10 +54,10 @@ function Doughnut2({ datos, moneda }) {
   }
   return (
     <div className="h-56">
-      <Doughnut data={data} options={options} />
+      <Doughnut ref={ref} data={data} options={options} />
     </div>
   )
-}
+})
 
 function Ranking({ titulo, datos, moneda }) {
   return (
@@ -92,6 +92,10 @@ export default function Reportes() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [moneda, setMoneda] = useState('ARS')
+  const [exportando, setExportando] = useState(false)
+  const barRef = useRef(null)
+  const doughnutEgresoRef = useRef(null)
+  const doughnutIngresoRef = useRef(null)
 
   const tieneAcceso = !tienePlanLimitado(profile?.plan)
 
@@ -181,15 +185,25 @@ export default function Reportes() {
     },
   }
 
-  function exportar() {
-    descargarReporteExcel({
-      moneda,
-      categoriasIngreso,
-      categoriasEgreso,
-      clientes: clientesMoneda,
-      proveedores: proveedoresMoneda,
-      evolucion: serieEvolucion,
-    })
+  async function exportar() {
+    setExportando(true)
+    try {
+      await descargarReporteExcel({
+        moneda,
+        categoriasIngreso,
+        categoriasEgreso,
+        clientes: clientesMoneda,
+        proveedores: proveedoresMoneda,
+        evolucion: serieEvolucion,
+        graficos: [
+          { titulo: 'Evolución mensual', base64: barRef.current?.toBase64Image() },
+          { titulo: 'Egresos por categoría', base64: doughnutEgresoRef.current?.toBase64Image() },
+          { titulo: 'Ingresos por categoría', base64: doughnutIngresoRef.current?.toBase64Image() },
+        ],
+      })
+    } finally {
+      setExportando(false)
+    }
   }
 
   if (!tieneAcceso) {
@@ -237,8 +251,8 @@ export default function Reportes() {
               ))}
             </div>
           )}
-          <button onClick={exportar} className="btn-secondary" disabled={loading}>
-            Exportar a Excel
+          <button onClick={exportar} className="btn-secondary" disabled={loading || exportando}>
+            {exportando ? 'Generando…' : 'Exportar a Excel'}
           </button>
         </div>
       </div>
@@ -257,7 +271,7 @@ export default function Reportes() {
             <h2 className="font-semibold text-white">Evolución mensual (últimos 12 meses)</h2>
             <div className="mt-4 h-72">
               {barData ? (
-                <Bar data={barData} options={barOptions} />
+                <Bar ref={barRef} data={barData} options={barOptions} />
               ) : (
                 <p className="text-sm text-metal-500">Sin datos todavía.</p>
               )}
@@ -268,13 +282,13 @@ export default function Reportes() {
             <div className="card">
               <h2 className="font-semibold text-white">Egresos por categoría</h2>
               <div className="mt-4">
-                <Doughnut2 datos={categoriasEgreso} moneda={moneda} />
+                <Doughnut2 ref={doughnutEgresoRef} datos={categoriasEgreso} moneda={moneda} />
               </div>
             </div>
             <div className="card">
               <h2 className="font-semibold text-white">Ingresos por categoría</h2>
               <div className="mt-4">
-                <Doughnut2 datos={categoriasIngreso} moneda={moneda} />
+                <Doughnut2 ref={doughnutIngresoRef} datos={categoriasIngreso} moneda={moneda} />
               </div>
             </div>
           </div>
