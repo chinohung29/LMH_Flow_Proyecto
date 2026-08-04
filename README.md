@@ -61,6 +61,15 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
 - Página Configuración: editar el nombre de la empresa, ver/administrar
   miembros (cambiar rol, quitar) y generar invitaciones por link
   (`/unirse/:codigo`) sin depender de envío de emails
+- Límites de equipo (`supabase/schema_sprint4_limites_equipo.sql`):
+  invitar/gestionar miembros es una función exclusiva del plan Platinum
+  (en Starter se ve un aviso para actualizar en su lugar). Dentro de una
+  empresa Platinum los cupos por rol son 1 administrador, 4 miembros y 10
+  lectores (propietario no tiene límite, siempre es exactamente 1). La UI
+  deshabilita las opciones sin cupo y muestra "Cupos: X/Y" en la lista de
+  miembros; la validación real está en triggers de `empresa_miembros` e
+  `invitaciones` (`chequear_limite_miembros`/`chequear_limite_invitacion`),
+  así que también se respeta si el alta llega por `canjear_invitacion`
 - Límites del plan Starter (`supabase/schema_sprint4_limites.sql`): 1
   empresa propia, 20 clientes y 20 proveedores por empresa. Se avisa en la
   UI antes de llegar al límite y también se valida en el backend (función

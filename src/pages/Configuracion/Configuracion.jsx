@@ -13,7 +13,13 @@ import {
 } from '../../services/empresas'
 import { crearSuscripcion, cancelarSuscripcion } from '../../services/billing'
 import { formatDate, formatCurrency } from '../../utils/format'
-import { PRECIOS_USD, NOMBRE_PLAN, obtenerTasaOficial, calcularPrecioARS } from '../../utils/planes'
+import {
+  PRECIOS_USD,
+  NOMBRE_PLAN,
+  obtenerTasaOficial,
+  calcularPrecioARS,
+  tienePlanLimitado,
+} from '../../utils/planes'
 
 const ROLES_LABEL = {
   propietario: 'Propietario',
@@ -21,6 +27,12 @@ const ROLES_LABEL = {
   miembro: 'Miembro',
   lector: 'Lector',
 }
+
+// Cupos por rol dentro de una empresa Platinum (propietario no tiene
+// límite: siempre es exactamente 1, ya que solo se crea al dar de alta
+// la empresa). Debe coincidir con limite_rol() en la base de datos —
+// esos triggers son la fuente de verdad real, esto es solo para la UI.
+const LIMITE_ROL = { administrador: 1, miembro: 4, lector: 10 }
 
 export default function Configuracion() {
   const { user, profile, recargarPerfil } = useAuth()
@@ -43,6 +55,8 @@ export default function Configuracion() {
 
   const puedeAdministrar =
     empresaActiva?.rol === 'propietario' || empresaActiva?.rol === 'administrador'
+  const equipoLimitado = tienePlanLimitado(profile?.plan)
+  const puedeGestionarEquipo = puedeAdministrar && !equipoLimitado
 
   useEffect(() => {
     obtenerTasaOficial()
@@ -122,6 +136,16 @@ export default function Configuracion() {
     } catch (err) {
       setError(err.message)
     }
+  }
+
+  function ocupadosParaInvitar(rol) {
+    const enMiembros = miembros.filter((m) => m.rol === rol).length
+    const enInvitaciones = invitaciones.filter((i) => i.rol === rol).length
+    return enMiembros + enInvitaciones
+  }
+
+  function ocupadosParaMiembro(rol, idExcluido) {
+    return miembros.filter((m) => m.rol === rol && m.id !== idExcluido).length
   }
 
   function copiarLink(codigo) {
@@ -269,6 +293,13 @@ export default function Configuracion() {
 
           <div className="card">
             <h2 className="font-semibold text-white">Miembros</h2>
+            {puedeGestionarEquipo && (
+              <p className="mt-1 text-xs text-metal-400">
+                Cupos: Administrador {ocupadosParaInvitar('administrador')}/{LIMITE_ROL.administrador} · Miembros{' '}
+                {ocupadosParaInvitar('miembro')}/{LIMITE_ROL.miembro} · Lectores{' '}
+                {ocupadosParaInvitar('lector')}/{LIMITE_ROL.lector}
+              </p>
+            )}
             <ul className="mt-4 space-y-3">
               {miembros.map((m) => (
                 <li key={m.id} className="flex items-center justify-between gap-3">
@@ -281,15 +312,27 @@ export default function Configuracion() {
                   </div>
                   {puedeAdministrar && m.rol !== 'propietario' ? (
                     <div className="flex shrink-0 items-center gap-2">
-                      <select
-                        className="input-field !w-auto !py-1 text-xs"
-                        value={m.rol}
-                        onChange={(e) => handleCambiarRol(m.id, e.target.value)}
-                      >
-                        <option value="administrador">Administrador</option>
-                        <option value="miembro">Miembro</option>
-                        <option value="lector">Lector</option>
-                      </select>
+                      {puedeGestionarEquipo ? (
+                        <select
+                          className="input-field !w-auto !py-1 text-xs"
+                          value={m.rol}
+                          onChange={(e) => handleCambiarRol(m.id, e.target.value)}
+                        >
+                          {Object.keys(LIMITE_ROL).map((rol) => (
+                            <option
+                              key={rol}
+                              value={rol}
+                              disabled={rol !== m.rol && ocupadosParaMiembro(rol, m.id) >= LIMITE_ROL[rol]}
+                            >
+                              {ROLES_LABEL[rol]}
+                            </option>
+                          ))}
+                        </select>
+                      ) : (
+                        <span className="shrink-0 rounded-full bg-metal-800 px-2.5 py-1 text-xs text-metal-300">
+                          {ROLES_LABEL[m.rol]}
+                        </span>
+                      )}
                       <button
                         onClick={() => handleEliminarMiembro(m.id)}
                         className="text-xs text-metal-400 hover:text-danger"
@@ -307,7 +350,20 @@ export default function Configuracion() {
             </ul>
           </div>
 
-          {puedeAdministrar && (
+          {puedeAdministrar && equipoLimitado && (
+            <div className="card lg:col-span-2 text-center">
+              <p className="text-3xl">🧑‍🤝‍🧑</p>
+              <h2 className="mt-3 font-display text-lg font-semibold text-white">
+                Invitar miembros es una función del plan Platinum
+              </h2>
+              <p className="mx-auto mt-2 max-w-md text-sm text-metal-300">
+                Actualizá a Platinum para sumar hasta 1 administrador, 4 miembros y 10 lectores a
+                esta empresa, cada uno con sus propios permisos.
+              </p>
+            </div>
+          )}
+
+          {puedeGestionarEquipo && (
             <div className="card lg:col-span-2">
               <h2 className="font-semibold text-white">Invitar a la empresa</h2>
               <form onSubmit={handleCrearInvitacion} className="mt-4 flex flex-wrap items-end gap-2">
@@ -321,12 +377,23 @@ export default function Configuracion() {
                     value={rolInvitacion}
                     onChange={(e) => setRolInvitacion(e.target.value)}
                   >
-                    <option value="administrador">Administrador</option>
-                    <option value="miembro">Miembro</option>
-                    <option value="lector">Lector</option>
+                    {Object.keys(LIMITE_ROL).map((rol) => (
+                      <option
+                        key={rol}
+                        value={rol}
+                        disabled={ocupadosParaInvitar(rol) >= LIMITE_ROL[rol]}
+                      >
+                        {ROLES_LABEL[rol]}
+                        {ocupadosParaInvitar(rol) >= LIMITE_ROL[rol] ? ' (cupo lleno)' : ''}
+                      </option>
+                    ))}
                   </select>
                 </div>
-                <button type="submit" className="btn-primary" disabled={creandoInvitacion}>
+                <button
+                  type="submit"
+                  className="btn-primary"
+                  disabled={creandoInvitacion || ocupadosParaInvitar(rolInvitacion) >= LIMITE_ROL[rolInvitacion]}
+                >
                   {creandoInvitacion ? 'Generando…' : 'Generar invitación'}
                 </button>
               </form>
