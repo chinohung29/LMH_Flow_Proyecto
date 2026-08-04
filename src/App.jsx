@@ -14,6 +14,7 @@ import Clientes from './pages/Clientes/Clientes'
 import Proveedores from './pages/Proveedores/Proveedores'
 import Simulador from './pages/Simulador/Simulador'
 import Reportes from './pages/Reportes/Reportes'
+import IAFinanciera from './pages/IAFinanciera/IAFinanciera'
 import Configuracion from './pages/Configuracion/Configuracion'
 import UnirseEmpresa from './pages/UnirseEmpresa/UnirseEmpresa'
 
@@ -42,6 +43,7 @@ export default function App() {
       <Route path="/proveedores" element={withProtection(Proveedores)} />
       <Route path="/simulador" element={withProtection(Simulador)} />
       <Route path="/reportes" element={withProtection(Reportes)} />
+      <Route path="/ia-financiera" element={withProtection(IAFinanciera)} />
       <Route path="/configuracion" element={withProtection(Configuracion)} />
       <Route path="/unirse/:codigo" element={withProtection(UnirseEmpresa)} />
       <Route path="*" element={<Landing />} />

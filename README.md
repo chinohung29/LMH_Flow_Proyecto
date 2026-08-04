@@ -87,9 +87,16 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   puede editar cualquier campo de un movimiento ya cargado (tipo,
   descripción, monto, fecha, cuenta, categoría, cliente/proveedor,
   estado) por si se cargó algo mal
+- Cuentas: se suman los tipos "Tarjeta de crédito" y "Cheque" además de
+  Banco/Caja
+- IA financiera (exclusivo de planes trial/platinum — ver sección
+  **IA financiera** más abajo): asistente de chat en `/ia-financiera`
+  que responde preguntas en lenguaje natural usando los movimientos,
+  saldos y vencimientos reales de la empresa, más tarjetas de
+  observaciones automáticas ("Análisis con IA") en el Dashboard
 - Pendiente: integración de Mercado Pago para que cada cliente importe
   sus propias ventas (era la otra idea original, se priorizó primero
-  cobrar los planes de LMH Flow), IA financiera e integración con Odoo
+  cobrar los planes de LMH Flow) e integración con Odoo
 
 ## Identidad visual
 
@@ -258,6 +265,36 @@ Pago, usá un comprador distinto del vendedor (cuenta real vs. cuenta de
 prueba, o un email diferente) — Mercado Pago rechaza la suscripción si
 el pagador y el cobrador son la misma cuenta o si uno es de prueba y el
 otro real.
+
+### IA financiera
+
+El asistente de chat (`/ia-financiera`) y las tarjetas de "Análisis con
+IA" del Dashboard usan la API de Anthropic (Claude). Viven en una sola
+Edge Function, `supabase/functions/ia-financiera`, con dos modos:
+
+- `modo: "chat"` — arma un resumen en texto de los saldos, movimientos
+  recientes, próximos vencimientos y clientes/proveedores con pendientes
+  de la empresa activa (RLS ya limita esto a los datos de esa empresa),
+  se lo pasa como contexto al modelo junto con la pregunta del usuario,
+  y devuelve la respuesta.
+- `modo: "insights"` — le pide al modelo 2-3 observaciones cortas
+  (alerta/oportunidad/info) en JSON a partir del mismo contexto.
+
+Es una función exclusiva de planes trial/platinum (mismo criterio que
+Reportes); el plan starter ve un aviso para actualizar en su lugar.
+
+Para que funcione hace falta, una sola vez:
+
+1. Crear una cuenta en [console.anthropic.com](https://console.anthropic.com)
+   y cargar un método de pago (Anthropic cobra por uso, no por suscripción).
+2. En **Settings → API Keys**, generar una API key nueva (empieza con
+   `sk-ant-api03-...`).
+3. Cargarla como secret en el proyecto de Supabase — **Edge Functions →
+   Secrets** — con el nombre `ANTHROPIC_API_KEY` (nunca commitear este
+   valor al repo ni pegarlo en un chat).
+
+No hay ningún otro paso: no usa webhooks ni cron, cada respuesta se
+genera al momento en que el usuario la pide.
 
 ### Build de producción
 

@@ -18,6 +18,8 @@ import { listMovimientos } from '../../services/movimientos'
 import { calcularResumenPorMoneda, calcularSemaforo } from '../../utils/resumen'
 import { agruparFlujo } from '../../utils/flujo'
 import { formatCurrency, formatDate } from '../../utils/format'
+import { generarInsightsIA } from '../../services/ia'
+import { tienePlanLimitado } from '../../utils/planes'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
 
@@ -30,7 +32,7 @@ const SEMAFORO_STYLES = {
 const NOMBRE_MONEDA = { ARS: 'Pesos ($)', USD: 'Dólares (US$)' }
 
 export default function Dashboard() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { empresaActiva } = useEmpresa()
   const [cuentas, setCuentas] = useState([])
   const [movimientos, setMovimientos] = useState([])
@@ -69,6 +71,8 @@ export default function Dashboard() {
           {error}
         </p>
       )}
+
+      <AnalisisIA plan={profile?.plan} />
 
       {loading ? (
         <p className="text-sm text-metal-400">Cargando…</p>
@@ -237,6 +241,93 @@ function StatCard({ label, value, moneda, accent = 'text-white' }) {
     <div className="card">
       <p className="text-sm text-metal-400">{label}</p>
       <p className={`mt-2 text-2xl font-semibold ${accent}`}>{formatCurrency(value, moneda)}</p>
+    </div>
+  )
+}
+
+const TIPO_INSIGHT_STYLES = {
+  alerta: 'border-danger/40 bg-danger/10 text-danger',
+  oportunidad: 'border-success/40 bg-success/10 text-success',
+  info: 'border-electric-500/40 bg-electric-500/10 text-electric-300',
+}
+const TIPO_INSIGHT_ICONO = { alerta: '⚠️', oportunidad: '💡', info: 'ℹ️' }
+
+function AnalisisIA({ plan }) {
+  const [insights, setInsights] = useState(null)
+  const [cargando, setCargando] = useState(false)
+  const [error, setError] = useState('')
+
+  const tieneAcceso = !tienePlanLimitado(plan)
+
+  async function generar() {
+    setCargando(true)
+    setError('')
+    try {
+      const data = await generarInsightsIA()
+      setInsights(data)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setCargando(false)
+    }
+  }
+
+  if (!tieneAcceso) {
+    return (
+      <div className="card mb-8 flex flex-col items-start justify-between gap-3 sm:flex-row sm:items-center">
+        <div>
+          <h2 className="font-semibold text-white">🤖 Análisis con IA</h2>
+          <p className="text-sm text-metal-300">
+            Disponible en el plan Platinum: observaciones automáticas sobre tu estado financiero.
+          </p>
+        </div>
+        <Link to="/configuracion" className="btn-secondary shrink-0 text-sm">
+          Actualizar plan
+        </Link>
+      </div>
+    )
+  }
+
+  return (
+    <div className="card mb-8">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h2 className="font-semibold text-white">🤖 Análisis con IA</h2>
+          <p className="text-sm text-metal-300">
+            Observaciones automáticas sobre tu estado financiero.
+          </p>
+        </div>
+        <button
+          type="button"
+          className="btn-secondary shrink-0 text-sm"
+          onClick={generar}
+          disabled={cargando}
+        >
+          {cargando ? 'Analizando…' : insights ? 'Volver a analizar' : 'Analizar con IA'}
+        </button>
+      </div>
+
+      {error && (
+        <p className="mt-3 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-sm text-danger">
+          {error}
+        </p>
+      )}
+
+      {insights && (
+        <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+          {insights.map((ins, i) => (
+            <div
+              key={i}
+              className={`rounded-xl border p-4 ${TIPO_INSIGHT_STYLES[ins.tipo] ?? TIPO_INSIGHT_STYLES.info}`}
+            >
+              <p className="font-medium">
+                {TIPO_INSIGHT_ICONO[ins.tipo] ?? 'ℹ️'} {ins.titulo}
+              </p>
+              <p className="mt-1 text-sm opacity-90">{ins.descripcion}</p>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   )
 }

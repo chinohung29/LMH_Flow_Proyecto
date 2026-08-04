@@ -14,6 +14,7 @@ const NAV_ITEMS = [
   { to: '/proveedores', label: 'Proveedores', icon: '📦' },
   { to: '/simulador', label: 'Simulador', icon: '🧮' },
   { to: '/reportes', label: 'Reportes', icon: '📑' },
+  { to: '/ia-financiera', label: 'IA Financiera', icon: '🤖' },
   { to: '/configuracion', label: 'Configuración', icon: '⚙️' },
 ]
 
