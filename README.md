@@ -269,8 +269,8 @@ otro real.
 ### IA financiera
 
 El asistente de chat (`/ia-financiera`) y las tarjetas de "Análisis con
-IA" del Dashboard usan la API de Google Gemini (plan gratuito, sin
-tarjeta de crédito). Viven en una sola Edge Function,
+IA" del Dashboard usan la API de Groq (plan gratuito, sin tarjeta de
+crédito). Viven en una sola Edge Function,
 `supabase/functions/ia-financiera`, con dos modos:
 
 - `modo: "chat"` — arma un resumen en texto de los saldos, movimientos
@@ -286,21 +286,30 @@ Reportes); el plan starter ve un aviso para actualizar en su lugar.
 
 Para que funcione hace falta, una sola vez:
 
-1. Entrar a [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-   con una cuenta de Google y hacer clic en **Create API key** (no pide
-   tarjeta de crédito, el plan gratuito de Gemini alcanza para el uso
-   normal de esta función).
-2. Copiar la key generada (empieza con `AIza...`).
+1. Entrar a [console.groq.com/keys](https://console.groq.com/keys),
+   crear una cuenta (con Google alcanza) y hacer clic en **Create API
+   Key** (no pide tarjeta de crédito, el plan gratuito de Groq alcanza
+   para el uso normal de esta función).
+2. Copiar la key generada (empieza con `gsk_...`).
 3. Cargarla como secret en el proyecto de Supabase — **Edge Functions →
-   Secrets** — con el nombre `GEMINI_API_KEY` (nunca commitear este
+   Secrets** — con el nombre `GROQ_API_KEY` (nunca commitear este
    valor al repo ni pegarlo en un chat).
 
 No hay ningún otro paso: no usa webhooks ni cron, cada respuesta se
 genera al momento en que el usuario la pide. El modelo usado es
-`gemini-2.0-flash`; si en el futuro conviene pasar a un proveedor pago
-(por ejemplo por límites de uso), alcanza con reemplazar la función
-`llamarGemini` en `supabase/functions/ia-financiera/index.ts` por el
-llamado al proveedor elegido.
+`llama-3.3-70b-versatile`; si en el futuro conviene pasar a un
+proveedor pago (por ejemplo por límites de uso), alcanza con
+reemplazar la función `llamarGroq` en
+`supabase/functions/ia-financiera/index.ts` por el llamado al
+proveedor elegido.
+
+Nota: antes de Groq se probó con Google Gemini, pero varias cuentas de
+Google (incluso con proyectos nuevos) devolvían cuota 0 en el nivel
+gratuito (`generate_content_free_tier_requests limit: 0`) — una
+restricción del lado de Google ajena al código. Si en algún momento se
+quiere reintentar Gemini, el patrón de `llamarGemini` (con
+`system_instruction` y roles `user`/`model`) queda documentado en el
+historial de commits de este archivo.
 
 ### Build de producción
 

@@ -132,35 +132,29 @@ Reglas:
 - Los montos en pesos y en dólares son independientes, nunca los sumes entre sí.
 - Sé concreto: priorizá números y hechos por sobre generalidades.`
 
-const GEMINI_MODEL = 'gemini-2.0-flash'
+const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
-// Gemini usa roles "user"/"model" (no "assistant") y separa el system
-// prompt en su propio campo en vez de ir dentro de "messages".
-async function llamarGemini(accessToken: string, system: string, messages: Array<{ role: string; content: string }>, maxTokens: number) {
-  const resp = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${GEMINI_MODEL}:generateContent`,
-    {
-      method: 'POST',
-      headers: {
-        'x-goog-api-key': accessToken,
-        'content-type': 'application/json',
-      },
-      body: JSON.stringify({
-        system_instruction: { parts: [{ text: system }] },
-        contents: messages.map((m) => ({
-          role: m.role === 'assistant' ? 'model' : 'user',
-          parts: [{ text: m.content }],
-        })),
-        generationConfig: { maxOutputTokens: maxTokens },
-      }),
-    }
-  )
+// Groq expone una API compatible con OpenAI: el system prompt va como un
+// mensaje más (role "system") al principio del array de "messages".
+async function llamarGroq(accessToken: string, system: string, messages: Array<{ role: string; content: string }>, maxTokens: number) {
+  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'content-type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: GROQ_MODEL,
+      messages: [{ role: 'system', content: system }, ...messages],
+      max_tokens: maxTokens,
+    }),
+  })
   const data = await resp.json()
   if (!resp.ok) {
-    console.error('Gemini API error:', resp.status, JSON.stringify(data))
+    console.error('Groq API error:', resp.status, JSON.stringify(data))
     throw new Error(data?.error?.message ?? 'Error al consultar la IA.')
   }
-  const texto = data?.candidates?.[0]?.content?.parts?.map((p: any) => p.text ?? '').join('') ?? ''
+  const texto = data?.choices?.[0]?.message?.content ?? ''
   return texto
 }
 
@@ -210,10 +204,10 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    const accessToken = Deno.env.get('GEMINI_API_KEY')
+    const accessToken = Deno.env.get('GROQ_API_KEY')
     if (!accessToken) {
       return new Response(
-        JSON.stringify({ error: 'La IA financiera no está configurada (falta el secret GEMINI_API_KEY).' }),
+        JSON.stringify({ error: 'La IA financiera no está configurada (falta el secret GROQ_API_KEY).' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       )
     }
@@ -237,7 +231,7 @@ Respondé ÚNICAMENTE con un array JSON válido, sin texto antes ni después, co
 Datos financieros:
 ${contexto}`
 
-      const texto = await llamarGemini(accessToken, system, [{ role: 'user', content: 'Generá los insights.' }], 700)
+      const texto = await llamarGroq(accessToken, system, [{ role: 'user', content: 'Generá los insights.' }], 700)
 
       let insights
       try {
@@ -274,7 +268,7 @@ ${contexto}`
       { role: 'user', content: mensaje },
     ]
 
-    const respuesta = await llamarGemini(accessToken, system, messages, 1024)
+    const respuesta = await llamarGroq(accessToken, system, messages, 1024)
 
     return new Response(JSON.stringify({ respuesta }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
