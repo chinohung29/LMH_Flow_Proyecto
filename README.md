@@ -269,8 +269,9 @@ otro real.
 ### IA financiera
 
 El asistente de chat (`/ia-financiera`) y las tarjetas de "Análisis con
-IA" del Dashboard usan la API de Anthropic (Claude). Viven en una sola
-Edge Function, `supabase/functions/ia-financiera`, con dos modos:
+IA" del Dashboard usan la API de Google Gemini (plan gratuito, sin
+tarjeta de crédito). Viven en una sola Edge Function,
+`supabase/functions/ia-financiera`, con dos modos:
 
 - `modo: "chat"` — arma un resumen en texto de los saldos, movimientos
   recientes, próximos vencimientos y clientes/proveedores con pendientes
@@ -285,16 +286,21 @@ Reportes); el plan starter ve un aviso para actualizar en su lugar.
 
 Para que funcione hace falta, una sola vez:
 
-1. Crear una cuenta en [console.anthropic.com](https://console.anthropic.com)
-   y cargar un método de pago (Anthropic cobra por uso, no por suscripción).
-2. En **Settings → API Keys**, generar una API key nueva (empieza con
-   `sk-ant-api03-...`).
+1. Entrar a [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
+   con una cuenta de Google y hacer clic en **Create API key** (no pide
+   tarjeta de crédito, el plan gratuito de Gemini alcanza para el uso
+   normal de esta función).
+2. Copiar la key generada (empieza con `AIza...`).
 3. Cargarla como secret en el proyecto de Supabase — **Edge Functions →
-   Secrets** — con el nombre `ANTHROPIC_API_KEY` (nunca commitear este
+   Secrets** — con el nombre `GEMINI_API_KEY` (nunca commitear este
    valor al repo ni pegarlo en un chat).
 
 No hay ningún otro paso: no usa webhooks ni cron, cada respuesta se
-genera al momento en que el usuario la pide.
+genera al momento en que el usuario la pide. El modelo usado es
+`gemini-2.0-flash`; si en el futuro conviene pasar a un proveedor pago
+(por ejemplo por límites de uso), alcanza con reemplazar la función
+`llamarGemini` en `supabase/functions/ia-financiera/index.ts` por el
+llamado al proveedor elegido.
 
 ### Build de producción
 
