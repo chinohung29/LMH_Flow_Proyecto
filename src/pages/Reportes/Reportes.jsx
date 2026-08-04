@@ -29,6 +29,13 @@ ChartJS.register(CategoryScale, LinearScale, BarElement, ArcElement, Tooltip, Le
 
 const NOMBRE_MONEDA = { ARS: '$', USD: 'US$' }
 const COLORES = ['#2B86EE', '#7C9CBF', '#4ADE80', '#FBBF24', '#F87171', '#A78BFA', '#34D399', '#F472B6']
+const FORMATO_MES_OPCION = new Intl.DateTimeFormat('es-AR', { month: 'long', year: 'numeric' })
+
+function labelMes(clave) {
+  const [anio, mes] = clave.split('-').map(Number)
+  const texto = FORMATO_MES_OPCION.format(new Date(anio, mes - 1, 1))
+  return texto.charAt(0).toUpperCase() + texto.slice(1)
+}
 
 const Doughnut2 = forwardRef(function Doughnut2({ datos, moneda }, ref) {
   if (datos.length === 0) {
@@ -92,6 +99,8 @@ export default function Reportes() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [moneda, setMoneda] = useState('ARS')
+  const [mesDesde, setMesDesde] = useState('')
+  const [mesHasta, setMesHasta] = useState('')
   const [exportando, setExportando] = useState(false)
   const barRef = useRef(null)
   const doughnutEgresoRef = useRef(null)
@@ -137,16 +146,52 @@ export default function Reportes() {
     [movimientos, moneda]
   )
 
-  const categorias = useMemo(() => resumenPorCategoria(movimientosMoneda), [movimientosMoneda])
+  const mesesDisponibles = useMemo(() => {
+    const set = new Set(movimientosMoneda.map((m) => m.fecha.slice(0, 7)))
+    return [...set].sort()
+  }, [movimientosMoneda])
+
+  useEffect(() => {
+    if (mesesDisponibles.length === 0) return
+    setMesDesde((actual) => (mesesDisponibles.includes(actual) ? actual : mesesDisponibles[0]))
+    setMesHasta((actual) =>
+      mesesDisponibles.includes(actual) ? actual : mesesDisponibles[mesesDisponibles.length - 1]
+    )
+  }, [mesesDisponibles])
+
+  const filtroActivo = mesDesde && mesHasta && (mesDesde !== mesesDisponibles[0] || mesHasta !== mesesDisponibles[mesesDisponibles.length - 1])
+
+  const movimientosFiltrados = useMemo(() => {
+    if (!mesDesde || !mesHasta) return movimientosMoneda
+    return movimientosMoneda.filter((m) => {
+      const mes = m.fecha.slice(0, 7)
+      return mes >= mesDesde && mes <= mesHasta
+    })
+  }, [movimientosMoneda, mesDesde, mesHasta])
+
+  function cambiarMesDesde(valor) {
+    setMesDesde(valor)
+    if (mesHasta && valor > mesHasta) setMesHasta(valor)
+  }
+
+  function cambiarMesHasta(valor) {
+    setMesHasta(valor)
+    if (mesDesde && valor < mesDesde) setMesDesde(valor)
+  }
+
+  const categorias = useMemo(() => resumenPorCategoria(movimientosFiltrados), [movimientosFiltrados])
   const topClientes = useMemo(
-    () => rankingClientes(movimientosMoneda, clientes),
-    [movimientosMoneda, clientes]
+    () => rankingClientes(movimientosFiltrados, clientes),
+    [movimientosFiltrados, clientes]
   )
   const topProveedores = useMemo(
-    () => rankingProveedores(movimientosMoneda, proveedores),
-    [movimientosMoneda, proveedores]
+    () => rankingProveedores(movimientosFiltrados, proveedores),
+    [movimientosFiltrados, proveedores]
   )
-  const evolucion = useMemo(() => evolucionMensual(movimientosMoneda), [movimientosMoneda])
+  const evolucion = useMemo(
+    () => evolucionMensual(movimientosFiltrados, mesDesde && mesHasta ? { desde: mesDesde, hasta: mesHasta } : {}),
+    [movimientosFiltrados, mesDesde, mesHasta]
+  )
 
   const categoriasIngreso = categorias[moneda]?.ingreso ?? []
   const categoriasEgreso = categorias[moneda]?.egreso ?? []
@@ -195,6 +240,7 @@ export default function Reportes() {
         clientes: clientesMoneda,
         proveedores: proveedoresMoneda,
         evolucion: serieEvolucion,
+        movimientos: movimientosFiltrados,
         graficos: [
           { titulo: 'Evolución mensual', base64: barRef.current?.toBase64Image() },
           { titulo: 'Egresos por categoría', base64: doughnutEgresoRef.current?.toBase64Image() },
@@ -257,6 +303,47 @@ export default function Reportes() {
         </div>
       </div>
 
+      {mesesDisponibles.length > 1 && (
+        <div className="mb-6 flex flex-wrap items-center gap-3">
+          <span className="text-sm text-metal-400">Período:</span>
+          <select
+            value={mesDesde}
+            onChange={(e) => cambiarMesDesde(e.target.value)}
+            className="input-field w-auto"
+          >
+            {mesesDisponibles.map((m) => (
+              <option key={m} value={m}>
+                {labelMes(m)}
+              </option>
+            ))}
+          </select>
+          <span className="text-sm text-metal-400">a</span>
+          <select
+            value={mesHasta}
+            onChange={(e) => cambiarMesHasta(e.target.value)}
+            className="input-field w-auto"
+          >
+            {mesesDisponibles.map((m) => (
+              <option key={m} value={m}>
+                {labelMes(m)}
+              </option>
+            ))}
+          </select>
+          {filtroActivo && (
+            <button
+              type="button"
+              onClick={() => {
+                setMesDesde(mesesDisponibles[0])
+                setMesHasta(mesesDisponibles[mesesDisponibles.length - 1])
+              }}
+              className="text-sm text-electric-400 hover:text-electric-300"
+            >
+              Ver todo el historial
+            </button>
+          )}
+        </div>
+      )}
+
       {error && (
         <p className="mb-4 rounded-lg border border-danger/40 bg-danger/10 px-4 py-2 text-sm text-danger">
           {error}
@@ -268,7 +355,14 @@ export default function Reportes() {
       ) : (
         <div className="space-y-6">
           <div className="card">
-            <h2 className="font-semibold text-white">Evolución mensual (últimos 12 meses)</h2>
+            <h2 className="font-semibold text-white">
+              Evolución mensual
+              {filtroActivo && mesDesde && mesHasta && (
+                <span className="ml-2 text-sm font-normal text-metal-400">
+                  ({labelMes(mesDesde)} a {labelMes(mesHasta)})
+                </span>
+              )}
+            </h2>
             <div className="mt-4 h-72">
               {barData ? (
                 <Bar ref={barRef} data={barData} options={barOptions} />

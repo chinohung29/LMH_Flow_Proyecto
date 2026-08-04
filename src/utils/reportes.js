@@ -59,16 +59,33 @@ export function rankingProveedores(movimientos, proveedores, limite = 10) {
   return rankingPor(movimientos, proveedores, { tipo: 'egreso', clave: 'proveedor_id' }, limite)
 }
 
-/** Serie mensual de ingresos vs egresos de los últimos `meses`, agrupada por moneda. */
-export function evolucionMensual(movimientos, meses = 12) {
+/**
+ * Serie mensual de ingresos vs egresos, agrupada por moneda. Por defecto
+ * muestra los últimos 12 meses; pasando `{ desde, hasta }` (claves
+ * "YYYY-MM") se puede acotar a un rango de meses específico.
+ */
+export function evolucionMensual(movimientos, { desde, hasta } = {}) {
   const hoy = new Date()
+  let inicio
+  let fin
+  if (desde && hasta) {
+    const [anioDesde, mesDesde] = desde.split('-').map(Number)
+    const [anioHasta, mesHasta] = hasta.split('-').map(Number)
+    inicio = new Date(anioDesde, mesDesde - 1, 1)
+    fin = new Date(anioHasta, mesHasta - 1, 1)
+  } else {
+    fin = new Date(hoy.getFullYear(), hoy.getMonth(), 1)
+    inicio = new Date(fin.getFullYear(), fin.getMonth() - 11, 1)
+  }
+
   const buckets = []
-  for (let i = meses - 1; i >= 0; i--) {
-    const d = new Date(hoy.getFullYear(), hoy.getMonth() - i, 1)
+  const cursor = new Date(inicio)
+  while (cursor <= fin) {
     buckets.push({
-      key: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`,
-      label: FORMATO_MES.format(d),
+      key: `${cursor.getFullYear()}-${String(cursor.getMonth() + 1).padStart(2, '0')}`,
+      label: FORMATO_MES.format(cursor),
     })
+    cursor.setMonth(cursor.getMonth() + 1)
   }
   const indicePorKey = new Map(buckets.map((b, i) => [b.key, i]))
 
@@ -79,8 +96,8 @@ export function evolucionMensual(movimientos, meses = 12) {
     if (!resultado[m.moneda]) {
       resultado[m.moneda] = {
         labels: buckets.map((b) => b.label),
-        ingresos: new Array(meses).fill(0),
-        egresos: new Array(meses).fill(0),
+        ingresos: new Array(buckets.length).fill(0),
+        egresos: new Array(buckets.length).fill(0),
       }
     }
     const serie = resultado[m.moneda]

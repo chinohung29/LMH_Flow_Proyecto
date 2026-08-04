@@ -33,11 +33,39 @@ function descargarBuffer(buffer, nombreArchivo) {
 }
 
 /**
+ * Escribe `filas` como una Tabla nativa de Excel (con flechitas de filtro
+ * en cada columna) en vez de celdas sueltas — así se puede filtrar/ordenar
+ * directamente en Excel, y sirve como fuente lista para armar una Tabla o
+ * Gráfico dinámico real (Insertar → Tabla dinámica) sin tocar la app.
+ */
+function agregarTabla(hoja, nombre, columnas, filas) {
+  columnas.forEach((header, i) => {
+    hoja.getColumn(i + 1).width = Math.max(14, header.length + 4)
+  })
+
+  if (filas.length === 0) {
+    hoja.addRow(columnas).font = { bold: true }
+    return
+  }
+
+  hoja.addTable({
+    name: nombre,
+    ref: 'A1',
+    headerRow: true,
+    style: { theme: 'TableStyleMedium9', showRowStripes: true },
+    columns: columnas.map((header) => ({ name: header, filterButton: true })),
+    rows: filas,
+  })
+}
+
+/**
  * `graficos` es un array de { titulo, base64 } con capturas PNG (data URL)
  * de los gráficos ya renderizados en pantalla (via chart.toBase64Image()),
  * que se insertan como imágenes en una hoja aparte — xlsx (SheetJS free)
  * no soporta incrustar gráficos nativos de Excel, así que usamos exceljs
- * para poder al menos incrustarlos como imagen.
+ * para poder al menos incrustarlos como imagen. `movimientos` (opcional)
+ * es el detalle crudo filtrado, que se agrega como Tabla en una hoja
+ * "Movimientos" pensada como fuente para una Tabla/Gráfico dinámico real.
  */
 export async function descargarReporteExcel({
   moneda,
@@ -46,6 +74,7 @@ export async function descargarReporteExcel({
   clientes,
   proveedores,
   evolucion,
+  movimientos = [],
   graficos = [],
 }) {
   const { default: ExcelJS } = await import('exceljs')
@@ -65,46 +94,75 @@ export async function descargarReporteExcel({
       })
       filaActual += 18
     }
+
+    if (movimientos.length > 0) {
+      filaActual += 1
+      hojaGraficos.getCell(`A${filaActual}`).value =
+        'Cómo armar un gráfico dinámico interactivo (tipo Power BI)'
+      hojaGraficos.getCell(`A${filaActual}`).font = { bold: true, size: 12 }
+      filaActual += 1
+      const pasos = [
+        '1. Andá a la hoja "Movimientos" (el detalle completo, ya como Tabla de Excel).',
+        '2. Hacé clic en cualquier celda dentro de esa tabla.',
+        '3. Insertar → Tabla dinámica (o "Gráfico dinámico" si tu versión de Excel lo tiene directo).',
+        '4. Arrastrá Fecha, Categoría o Cliente/Proveedor a Filas o Filtros, y Monto a Valores.',
+        '5. Ese gráfico sí queda 100% interactivo: filtrás por mes, categoría, etc. sin la app.',
+      ]
+      for (const paso of pasos) {
+        hojaGraficos.getCell(`A${filaActual}`).value = paso
+        filaActual += 1
+      }
+    }
   }
 
-  const hojaCategorias = libro.addWorksheet('Por categoría')
-  hojaCategorias.columns = [
-    { header: 'Tipo', key: 'tipo', width: 12 },
-    { header: 'Categoría', key: 'categoria', width: 24 },
-    { header: 'Monto', key: 'monto', width: 16 },
-  ]
-  hojaCategorias.addRows([
-    ...categoriasIngreso.map((c) => ({ tipo: 'Ingreso', categoria: c.categoria, monto: c.total })),
-    ...categoriasEgreso.map((c) => ({ tipo: 'Egreso', categoria: c.categoria, monto: c.total })),
-  ])
+  agregarTabla(
+    libro.addWorksheet('Por categoría'),
+    'TablaCategorias',
+    ['Tipo', 'Categoría', 'Monto'],
+    [
+      ...categoriasIngreso.map((c) => ['Ingreso', c.categoria, c.total]),
+      ...categoriasEgreso.map((c) => ['Egreso', c.categoria, c.total]),
+    ]
+  )
 
-  const hojaClientes = libro.addWorksheet('Top clientes')
-  hojaClientes.columns = [
-    { header: 'Cliente', key: 'cliente', width: 28 },
-    { header: 'Facturado', key: 'facturado', width: 16 },
-  ]
-  hojaClientes.addRows(clientes.map((c) => ({ cliente: c.nombre, facturado: c.total })))
+  agregarTabla(
+    libro.addWorksheet('Top clientes'),
+    'TablaClientes',
+    ['Cliente', 'Facturado'],
+    clientes.map((c) => [c.nombre, c.total])
+  )
 
-  const hojaProveedores = libro.addWorksheet('Top proveedores')
-  hojaProveedores.columns = [
-    { header: 'Proveedor', key: 'proveedor', width: 28 },
-    { header: 'Pagado', key: 'pagado', width: 16 },
-  ]
-  hojaProveedores.addRows(proveedores.map((p) => ({ proveedor: p.nombre, pagado: p.total })))
+  agregarTabla(
+    libro.addWorksheet('Top proveedores'),
+    'TablaProveedores',
+    ['Proveedor', 'Pagado'],
+    proveedores.map((p) => [p.nombre, p.total])
+  )
 
   if (evolucion) {
-    const hojaEvolucion = libro.addWorksheet('Evolución mensual')
-    hojaEvolucion.columns = [
-      { header: 'Mes', key: 'mes', width: 12 },
-      { header: 'Ingresos', key: 'ingresos', width: 16 },
-      { header: 'Egresos', key: 'egresos', width: 16 },
-    ]
-    hojaEvolucion.addRows(
-      evolucion.labels.map((label, i) => ({
-        mes: label,
-        ingresos: evolucion.ingresos[i],
-        egresos: evolucion.egresos[i],
-      }))
+    agregarTabla(
+      libro.addWorksheet('Evolución mensual'),
+      'TablaEvolucion',
+      ['Mes', 'Ingresos', 'Egresos'],
+      evolucion.labels.map((label, i) => [label, evolucion.ingresos[i], evolucion.egresos[i]])
+    )
+  }
+
+  if (movimientos.length > 0) {
+    agregarTabla(
+      libro.addWorksheet('Movimientos'),
+      'TablaMovimientos',
+      ['Fecha', 'Tipo', 'Descripción', 'Categoría', 'Cliente', 'Proveedor', 'Monto', 'Estado'],
+      movimientos.map((m) => [
+        m.fecha,
+        m.tipo,
+        m.descripcion,
+        m.categoria?.nombre ?? '',
+        m.cliente?.nombre ?? '',
+        m.proveedor?.nombre ?? '',
+        Number(m.monto),
+        m.estado,
+      ])
     )
   }
 
