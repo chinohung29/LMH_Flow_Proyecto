@@ -17,6 +17,8 @@ import Reportes from './pages/Reportes/Reportes'
 import IAFinanciera from './pages/IAFinanciera/IAFinanciera'
 import Configuracion from './pages/Configuracion/Configuracion'
 import UnirseEmpresa from './pages/UnirseEmpresa/UnirseEmpresa'
+import Privacidad from './pages/Legal/Privacidad'
+import Terminos from './pages/Legal/Terminos'
 
 function withProtection(Component) {
   return (
@@ -34,6 +36,8 @@ export default function App() {
       <Route path="/registro" element={<Registro />} />
       <Route path="/olvide-password" element={<OlvidePassword />} />
       <Route path="/restablecer-password" element={<RestablecerPassword />} />
+      <Route path="/privacidad" element={<Privacidad />} />
+      <Route path="/terminos" element={<Terminos />} />
       <Route path="/dashboard" element={withProtection(Dashboard)} />
       <Route path="/movimientos" element={withProtection(Movimientos)} />
       <Route path="/categorias" element={withProtection(Categorias)} />

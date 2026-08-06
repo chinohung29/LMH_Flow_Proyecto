@@ -35,4 +35,19 @@
   .label-field {
     @apply mb-1.5 block text-sm font-medium text-metal-300;
   }
+  .legal-content h2 {
+    @apply font-display text-lg font-semibold text-white;
+  }
+  .legal-content h3 {
+    @apply text-base font-semibold text-metal-100;
+  }
+  .legal-content ul {
+    @apply list-disc space-y-1.5 pl-5;
+  }
+  .legal-content strong {
+    @apply font-semibold text-metal-100;
+  }
+  .legal-content a {
+    @apply text-electric-400 hover:text-electric-300;
+  }
 }

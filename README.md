@@ -105,7 +105,22 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   observaciones automáticas ("Análisis con IA") en el Dashboard
 - Pendiente: integración de Mercado Pago para que cada cliente importe
   sus propias ventas (era la otra idea original, se priorizó primero
-  cobrar los planes de LMH Flow) e integración con Odoo
+  cobrar los planes de LMH Flow)
+- Importación de movimientos: se corrige un bug real donde las fechas
+  DD/MM/AAAA se guardaban con día y mes invertidos, se agrega soporte
+  para montos en formato argentino como texto ("1.234,56"), se avisa
+  (sin rechazar) cuando una Cuenta/Categoría del archivo no coincide
+  con ninguna existente, y se agrega un botón "Descargar modelo" que
+  genera un .xlsx con los encabezados correctos y las cuentas/
+  categorías reales del usuario para copiar el nombre exacto
+- Cumplimiento legal: Política de Privacidad (`/privacidad`) y
+  Términos y Condiciones (`/terminos`, incluye derecho de
+  arrepentimiento de 10 días según Res. 424/2020), enlazados desde el
+  footer público y con checkbox de aceptación obligatorio en
+  `/registro`. **Redactados con asistencia de IA a partir de los datos
+  reales provistos — deben ser revisados por un abogado antes de
+  considerarse vinculantes**, y todavía falta evaluar si corresponde
+  inscribir la base de datos de usuarios ante la AAIP (Ley 25.326)
 
 ## Identidad visual
 

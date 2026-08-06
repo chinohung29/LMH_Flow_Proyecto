@@ -211,6 +211,14 @@ export default function Landing() {
             </svg>
           </a>
         </div>
+        <div className="mb-3 flex items-center justify-center gap-4">
+          <Link to="/privacidad" className="hover:text-metal-300">
+            Privacidad
+          </Link>
+          <Link to="/terminos" className="hover:text-metal-300">
+            Términos y condiciones
+          </Link>
+        </div>
         © {new Date().getFullYear()} LMH Flow · LMH Consulting
       </footer>
     </div>

@@ -11,6 +11,7 @@ export default function Registro() {
   const [nombre, setNombre] = useState('')
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [aceptaTerminos, setAceptaTerminos] = useState(false)
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [enviado, setEnviado] = useState(false)
@@ -21,6 +22,11 @@ export default function Registro() {
 
     if (password.length < 8) {
       setError('La contraseña debe tener al menos 8 caracteres.')
+      return
+    }
+
+    if (!aceptaTerminos) {
+      setError('Tenés que aceptar los Términos y la Política de Privacidad para continuar.')
       return
     }
 
@@ -117,6 +123,26 @@ export default function Registro() {
                     placeholder="Mínimo 8 caracteres"
                   />
                 </div>
+
+                <label className="flex items-start gap-2 text-xs text-metal-300">
+                  <input
+                    type="checkbox"
+                    className="mt-0.5 h-4 w-4 shrink-0 rounded border-metal-600 bg-graphite-800 text-electric-600 focus:ring-electric-500"
+                    checked={aceptaTerminos}
+                    onChange={(e) => setAceptaTerminos(e.target.checked)}
+                  />
+                  <span>
+                    Acepto los{' '}
+                    <Link to="/terminos" target="_blank" className="text-electric-400 hover:text-electric-300">
+                      Términos y Condiciones
+                    </Link>{' '}
+                    y la{' '}
+                    <Link to="/privacidad" target="_blank" className="text-electric-400 hover:text-electric-300">
+                      Política de Privacidad
+                    </Link>
+                    .
+                  </span>
+                </label>
 
                 {error && (
                   <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">
