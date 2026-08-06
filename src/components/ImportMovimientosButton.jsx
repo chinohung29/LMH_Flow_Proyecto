@@ -1,7 +1,7 @@
 import { useRef, useState } from 'react'
 import { useAuth } from '../context/AuthContext'
 import { useEmpresa } from '../context/EmpresaContext'
-import { leerMovimientosExcel } from '../utils/excel'
+import { leerMovimientosExcel, descargarModeloMovimientosExcel } from '../utils/excel'
 import { bulkInsertMovimientos } from '../services/movimientos'
 
 export default function ImportMovimientosButton({
@@ -24,7 +24,7 @@ export default function ImportMovimientosButton({
     setImportando(true)
     setResumen('')
     try {
-      const { validos, invalidos } = await leerMovimientosExcel(file, {
+      const { validos, invalidos, avisos } = await leerMovimientosExcel(file, {
         cuentas,
         categorias,
       })
@@ -36,6 +36,9 @@ export default function ImportMovimientosButton({
       }
 
       const partes = [`${insertados.length} movimiento(s) importado(s)`]
+      if (avisos.length > 0) {
+        partes.push(`${avisos.length} con cuenta o categoría no reconocida (se importaron igual, sin esa asignación)`)
+      }
       if (invalidos.length > 0) {
         partes.push(`${invalidos.length} fila(s) omitida(s) por datos inválidos`)
       }
@@ -49,14 +52,23 @@ export default function ImportMovimientosButton({
 
   return (
     <div className="flex flex-col items-start gap-1">
-      <button
-        type="button"
-        className="btn-secondary text-sm"
-        disabled={importando}
-        onClick={() => inputRef.current?.click()}
-      >
-        {importando ? 'Importando…' : 'Importar Excel'}
-      </button>
+      <div className="flex flex-wrap gap-2">
+        <button
+          type="button"
+          className="btn-secondary text-sm"
+          disabled={importando}
+          onClick={() => inputRef.current?.click()}
+        >
+          {importando ? 'Importando…' : 'Importar Excel'}
+        </button>
+        <button
+          type="button"
+          className="text-sm text-electric-400 hover:text-electric-300"
+          onClick={() => descargarModeloMovimientosExcel({ cuentas, categorias })}
+        >
+          Descargar modelo
+        </button>
+      </div>
       <input
         ref={inputRef}
         type="file"

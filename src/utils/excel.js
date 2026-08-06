@@ -180,6 +180,21 @@ function normalizarClave(clave) {
     .replace(/[̀-ͯ]/g, '')
 }
 
+/**
+ * Acepta números de Excel normales (1234.56) y también el formato
+ * argentino cuando la celda llega como texto ("1.234,56" o "1234,56":
+ * punto = separador de miles, coma = decimales).
+ */
+function parseMonto(valor) {
+  if (typeof valor === 'number') return valor
+  const texto = String(valor ?? '').trim()
+  if (!texto) return NaN
+  const directo = Number(texto)
+  if (!Number.isNaN(directo)) return directo
+  const formatoArgentino = texto.replace(/\./g, '').replace(',', '.')
+  return Number(formatoArgentino)
+}
+
 function normalizarFecha(valor) {
   if (valor instanceof Date) return valor.toISOString().slice(0, 10)
 
@@ -194,7 +209,8 @@ function normalizarFecha(valor) {
   const dmy = texto.match(/^(\d{1,2})[/-](\d{1,2})[/-](\d{4})$/)
   if (dmy) {
     const [, d, m, y] = dmy
-    return `${y}-${d.padStart(2, '0')}-${m.padStart(2, '0')}`
+    if (Number(d) < 1 || Number(d) > 31 || Number(m) < 1 || Number(m) > 12) return null
+    return `${y}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`
   }
 
   return null
@@ -221,10 +237,13 @@ function normalizarMoneda(valor) {
 }
 
 /**
- * Lee un archivo .xlsx/.csv y devuelve { validos, invalidos }.
+ * Lee un archivo .xlsx/.csv y devuelve { validos, invalidos, avisos }.
  * `validos` está listo para insertar (cuenta_id/categoria_id resueltos por
  * nombre contra las listas del usuario); `invalidos` trae el motivo de cada
- * fila rechazada para mostrarle un resumen.
+ * fila rechazada; `avisos` son filas que sí se importaron pero con una
+ * "Cuenta" o "Categoría" que no coincide con ninguna existente (se
+ * importan igual, sin esa cuenta/categoría asignada, ya que ambas son
+ * opcionales — pero vale la pena avisar por si fue un error de tipeo).
  */
 export async function leerMovimientosExcel(file, { cuentas, categorias }) {
   const buffer = await file.arrayBuffer()
@@ -239,6 +258,7 @@ export async function leerMovimientosExcel(file, { cuentas, categorias }) {
 
   const validos = []
   const invalidos = []
+  const avisos = []
 
   filas.forEach((fila, index) => {
     const entradas = Object.fromEntries(
@@ -248,20 +268,28 @@ export async function leerMovimientosExcel(file, { cuentas, categorias }) {
     const fecha = normalizarFecha(entradas.fecha)
     const tipo = normalizarTipo(entradas.tipo)
     const descripcion = String(entradas.descripcion ?? '').trim()
-    const monto = Number(entradas.monto)
+    const monto = parseMonto(entradas.monto)
 
     const motivos = []
     if (!fecha) motivos.push('fecha inválida')
     if (!tipo) motivos.push('tipo debe ser ingreso o egreso')
     if (!descripcion) motivos.push('falta descripción')
-    if (!monto || monto <= 0) motivos.push('monto inválido')
+    if (!monto || Number.isNaN(monto) || monto <= 0) motivos.push('monto inválido')
 
     if (motivos.length > 0) {
       invalidos.push({ fila: index + 2, motivos })
       return
     }
 
-    const cuentaMatch = cuentaPorNombre.get(normalizarClave(entradas.cuenta))
+    const textoCuenta = String(entradas.cuenta ?? '').trim()
+    const textoCategoria = String(entradas.categoria ?? '').trim()
+    const cuentaMatch = cuentaPorNombre.get(normalizarClave(textoCuenta))
+    const categoriaMatch = categoriaPorNombre.get(normalizarClave(textoCategoria))
+
+    const avisosFila = []
+    if (textoCuenta && !cuentaMatch) avisosFila.push(`cuenta "${textoCuenta}" no encontrada`)
+    if (textoCategoria && !categoriaMatch) avisosFila.push(`categoría "${textoCategoria}" no encontrada`)
+    if (avisosFila.length > 0) avisos.push({ fila: index + 2, avisos: avisosFila })
 
     validos.push({
       fecha,
@@ -271,9 +299,90 @@ export async function leerMovimientosExcel(file, { cuentas, categorias }) {
       estado: normalizarEstado(entradas.estado),
       moneda: normalizarMoneda(entradas.moneda) ?? cuentaMatch?.moneda ?? 'ARS',
       cuenta_id: cuentaMatch?.id ?? null,
-      categoria_id: categoriaPorNombre.get(normalizarClave(entradas.categoria)) ?? null,
+      categoria_id: categoriaMatch ?? null,
     })
   })
 
-  return { validos, invalidos }
+  return { validos, invalidos, avisos }
+}
+
+/**
+ * Genera un .xlsx modelo para importar movimientos: la hoja "Movimientos"
+ * trae los encabezados correctos con 2 filas de ejemplo (usando cuentas y
+ * categorías reales del usuario si ya tiene, para que los nombres calcen
+ * exacto), y una hoja "Instrucciones" que explica cada columna.
+ */
+export function descargarModeloMovimientosExcel({ cuentas = [], categorias = [] } = {}) {
+  const cuentaEjemplo = cuentas[0]?.nombre ?? 'Caja'
+  const categoriaIngresoEjemplo = categorias.find((c) => c.tipo === 'ingreso')?.nombre ?? 'Ventas'
+  const categoriaEgresoEjemplo = categorias.find((c) => c.tipo === 'egreso')?.nombre ?? 'Alquiler'
+
+  const filasEjemplo = [
+    {
+      Fecha: new Date().toISOString().slice(0, 10),
+      Tipo: 'ingreso',
+      Descripción: 'Ejemplo: cobro a un cliente',
+      Monto: 150000,
+      Moneda: '$',
+      Cuenta: cuentaEjemplo,
+      Categoría: categoriaIngresoEjemplo,
+      Estado: 'realizado',
+    },
+    {
+      Fecha: new Date().toISOString().slice(0, 10),
+      Tipo: 'egreso',
+      Descripción: 'Ejemplo: pago a un proveedor',
+      Monto: 45000,
+      Moneda: '$',
+      Cuenta: cuentaEjemplo,
+      Categoría: categoriaEgresoEjemplo,
+      Estado: 'pendiente',
+    },
+  ]
+
+  const hojaMovimientos = XLSX.utils.json_to_sheet(filasEjemplo, { header: COLUMNAS })
+  hojaMovimientos['!cols'] = [
+    { wch: 12 },
+    { wch: 10 },
+    { wch: 30 },
+    { wch: 12 },
+    { wch: 10 },
+    { wch: 18 },
+    { wch: 18 },
+    { wch: 12 },
+  ]
+
+  const instrucciones = [
+    ['Columna', 'Qué va', 'Valores válidos'],
+    ['Fecha', 'Obligatoria', 'AAAA-MM-DD (ej: 2026-08-15) o DD/MM/AAAA (ej: 15/08/2026)'],
+    ['Tipo', 'Obligatorio', '"ingreso" o "egreso"'],
+    ['Descripción', 'Obligatoria', 'Texto libre'],
+    ['Monto', 'Obligatorio', 'Número positivo. Podés usar formato argentino (1.234,56) o simple (1234.56)'],
+    ['Moneda', 'Opcional', '"$" (pesos) o "US$" (dólares). Si se deja vacío, se usa la moneda de la Cuenta indicada, o pesos por defecto'],
+    ['Cuenta', 'Opcional', 'Debe coincidir EXACTO con el nombre de una cuenta ya creada (ver hoja de cuentas más abajo). Si no coincide, el movimiento igual se importa, pero sin cuenta asignada'],
+    ['Categoría', 'Opcional', 'Debe coincidir EXACTO con el nombre de una categoría ya creada (ver más abajo). Si no coincide, se importa sin categoría'],
+    ['Estado', 'Opcional', '"realizado" o "pendiente". Si se deja vacío, se asume "pendiente"'],
+    [],
+    ['No cambies los encabezados de la primera fila de la hoja "Movimientos".'],
+    ['Podés borrar las 2 filas de ejemplo antes de cargar las tuyas.'],
+    [],
+  ]
+
+  if (cuentas.length > 0) {
+    instrucciones.push(['Tus cuentas actuales (copiá el nombre exacto):'])
+    for (const c of cuentas) instrucciones.push([`- ${c.nombre} (${c.moneda === 'USD' ? 'US$' : '$'})`])
+    instrucciones.push([])
+  }
+  if (categorias.length > 0) {
+    instrucciones.push(['Tus categorías actuales (copiá el nombre exacto):'])
+    for (const c of categorias) instrucciones.push([`- ${c.nombre} (${c.tipo})`])
+  }
+
+  const hojaInstrucciones = XLSX.utils.aoa_to_sheet(instrucciones)
+  hojaInstrucciones['!cols'] = [{ wch: 45 }, { wch: 14 }, { wch: 70 }]
+
+  const libro = XLSX.utils.book_new()
+  XLSX.utils.book_append_sheet(libro, hojaMovimientos, 'Movimientos')
+  XLSX.utils.book_append_sheet(libro, hojaInstrucciones, 'Instrucciones')
+  XLSX.writeFile(libro, 'lmh-flow-modelo-importar-movimientos.xlsx')
 }
