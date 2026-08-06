@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../context/AuthContext'
 import { useEmpresa } from '../../context/EmpresaContext'
@@ -223,14 +224,22 @@ export default function Configuracion() {
         {(profile?.plan === 'starter' || profile?.plan === 'platinum') &&
           profile?.mp_preapproval_id &&
           !profile?.plan_vence_el && (
-            <button
-              type="button"
-              onClick={handleCancelar}
-              disabled={cancelando}
-              className="mt-2 text-xs font-medium text-metal-400 hover:text-danger"
-            >
-              {cancelando ? 'Cancelando…' : 'Cancelar suscripción'}
-            </button>
+            <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1">
+              <button
+                type="button"
+                onClick={handleCancelar}
+                disabled={cancelando}
+                className="text-xs font-medium text-metal-400 hover:text-danger"
+              >
+                {cancelando ? 'Cancelando…' : 'Cancelar suscripción'}
+              </button>
+              <Link
+                to="/arrepentimiento"
+                className="text-xs font-medium text-metal-400 hover:text-electric-300"
+              >
+                ¿Te arrepentiste? Solicitalo acá (10 días)
+              </Link>
+            </div>
           )}
 
         {errorPlan && (

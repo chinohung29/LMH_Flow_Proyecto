@@ -17,3 +17,7 @@ export function crearSuscripcion(plan) {
 export function cancelarSuscripcion() {
   return invocar('mp-cancelar-suscripcion', {})
 }
+
+export function solicitarArrepentimiento(motivo) {
+  return invocar('mp-arrepentimiento', { motivo })
+}

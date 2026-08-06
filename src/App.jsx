@@ -19,6 +19,7 @@ import Configuracion from './pages/Configuracion/Configuracion'
 import UnirseEmpresa from './pages/UnirseEmpresa/UnirseEmpresa'
 import Privacidad from './pages/Legal/Privacidad'
 import Terminos from './pages/Legal/Terminos'
+import Arrepentimiento from './pages/Legal/Arrepentimiento'
 
 function withProtection(Component) {
   return (
@@ -38,6 +39,7 @@ export default function App() {
       <Route path="/restablecer-password" element={<RestablecerPassword />} />
       <Route path="/privacidad" element={<Privacidad />} />
       <Route path="/terminos" element={<Terminos />} />
+      <Route path="/arrepentimiento" element={<Arrepentimiento />} />
       <Route path="/dashboard" element={withProtection(Dashboard)} />
       <Route path="/movimientos" element={withProtection(Movimientos)} />
       <Route path="/categorias" element={withProtection(Categorias)} />

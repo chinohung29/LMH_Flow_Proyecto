@@ -13,12 +13,15 @@ export default function LegalLayout({ titulo, actualizado, children }) {
         </div>
       </main>
       <footer className="border-t border-metal-800 py-8 text-center text-sm text-metal-500">
-        <div className="mb-3 flex items-center justify-center gap-4">
+        <div className="mb-3 flex flex-wrap items-center justify-center gap-4">
           <Link to="/privacidad" className="hover:text-metal-300">
             Privacidad
           </Link>
           <Link to="/terminos" className="hover:text-metal-300">
             Términos y condiciones
+          </Link>
+          <Link to="/arrepentimiento" className="hover:text-metal-300">
+            Botón de arrepentimiento
           </Link>
         </div>
         © {new Date().getFullYear()} LMH Flow · LMH Consulting

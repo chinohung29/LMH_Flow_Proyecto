@@ -31,7 +31,7 @@ export default function Registro() {
     }
 
     setLoading(true)
-    const { data, error: signUpError } = await signUp({ email, password, nombre })
+    const { data, error: signUpError } = await signUp({ email, password, nombre, aceptaTerminos })
     setLoading(false)
 
     if (signUpError) {

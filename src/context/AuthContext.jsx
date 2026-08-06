@@ -34,12 +34,12 @@ export function AuthProvider({ children }) {
     return () => subscription.subscription.unsubscribe()
   }, [])
 
-  const signUp = ({ email, password, nombre }) =>
+  const signUp = ({ email, password, nombre, aceptaTerminos }) =>
     supabase.auth.signUp({
       email,
       password,
       options: {
-        data: { nombre },
+        data: { nombre, terminos_aceptados: aceptaTerminos },
         emailRedirectTo: `${window.location.origin}/login`,
       },
     })

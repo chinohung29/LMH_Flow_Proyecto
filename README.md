@@ -121,6 +121,22 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   reales provistos — deben ser revisados por un abogado antes de
   considerarse vinculantes**, y todavía falta evaluar si corresponde
   inscribir la base de datos de usuarios ante la AAIP (Ley 25.326)
+- Re-consentimiento (`terminos_aceptados_at` en `profiles`): las cuentas
+  creadas antes de que existieran los Términos/Privacidad tienen esta
+  columna vacía a propósito, así que `ProtectedRoute` las bloquea con
+  `AceptarTerminosGate` hasta que las acepten explícitamente; las cuentas
+  nuevas la completan solas al registrarse
+- Botón de arrepentimiento (`/arrepentimiento`, `supabase/functions/mp-arrepentimiento`):
+  a diferencia de "Cancelar suscripción" (que deja seguir usando el plan
+  hasta fin del período ya pagado), esto es una recisión inmediata —
+  corta el acceso al plan pago en el momento y cancela el preapproval en
+  Mercado Pago ya mismo — y deja un registro en
+  `solicitudes_arrepentimiento` con un número de reclamo (`ARR-XXXXXXXX`).
+  **El reintegro del dinero en Mercado Pago todavía se hace a mano**: no
+  hay integración con la API de reembolsos de MP, así que hay que revisar
+  las solicitudes pendientes (`select * from solicitudes_arrepentimiento
+  where estado = 'pendiente'` en el SQL Editor de Supabase) y devolver el
+  pago correspondiente desde el panel de Mercado Pago
 
 ## Identidad visual
 
