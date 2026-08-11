@@ -142,6 +142,16 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   las solicitudes pendientes (`select * from solicitudes_arrepentimiento
   where estado = 'pendiente'` en el SQL Editor de Supabase) y devolver el
   pago correspondiente desde el panel de Mercado Pago
+- Indicadores personalizados (Reportes avanzados, tablas `indicadores` +
+  `indicador_terminos`): el usuario arma sus propios KPIs combinando
+  categorías con signo +/- ("numerador"), opcionalmente divididas por
+  otra combinación de categorías ("denominador") para armar ratios o
+  porcentajes — ej. "Ahorro neto" = Ventas − Costos, o "% costos sobre
+  ventas" = Costos / Ventas × 100. Cada indicador tiene su propia moneda
+  (independiente del selector $/US$ de la página) y se recalcula solo al
+  cambiar el período filtrado. Se muestran como tarjetas en Reportes, se
+  pueden eliminar (no editar todavía — hay que borrar y crear de nuevo),
+  y se incluyen en el Excel exportado (hoja "Indicadores")
 
 ## Identidad visual
 

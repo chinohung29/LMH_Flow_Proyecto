@@ -15,12 +15,15 @@ import { useEmpresa } from '../../context/EmpresaContext'
 import { listMovimientos } from '../../services/movimientos'
 import { listClientes } from '../../services/clientes'
 import { listProveedores } from '../../services/proveedores'
+import { listCategorias } from '../../services/categorias'
+import { listIndicadores, crearIndicador, eliminarIndicador } from '../../services/indicadores'
 import {
   resumenPorCategoria,
   rankingClientes,
   rankingProveedores,
   evolucionMensual,
 } from '../../utils/reportes'
+import { calcularIndicador, formatearIndicador } from '../../utils/indicadores'
 import { descargarReporteExcel } from '../../utils/excel'
 import { formatCurrency } from '../../utils/format'
 import { tienePlanLimitado } from '../../utils/planes'
@@ -90,18 +93,222 @@ function Ranking({ titulo, datos, moneda }) {
   )
 }
 
+const TERMINO_VACIO = () => ({ categoria_id: '', signo: 1 })
+
+function TerminosBuilder({ titulo, categorias, terminos, onChange }) {
+  function actualizarTermino(i, patch) {
+    onChange(terminos.map((t, idx) => (idx === i ? { ...t, ...patch } : t)))
+  }
+  function quitarTermino(i) {
+    onChange(terminos.filter((_, idx) => idx !== i))
+  }
+  return (
+    <div>
+      <p className="label-field">{titulo}</p>
+      <div className="space-y-2">
+        {terminos.map((t, i) => (
+          <div key={i} className="flex items-center gap-2">
+            <select
+              className="input-field !w-auto !py-1.5 text-sm"
+              value={t.signo}
+              onChange={(e) => actualizarTermino(i, { signo: Number(e.target.value) })}
+            >
+              <option value={1}>+</option>
+              <option value={-1}>−</option>
+            </select>
+            <select
+              className="input-field text-sm"
+              value={t.categoria_id}
+              onChange={(e) => actualizarTermino(i, { categoria_id: e.target.value })}
+            >
+              <option value="">Elegí una categoría…</option>
+              {categorias.map((c) => (
+                <option key={c.id} value={c.id}>
+                  {c.nombre} ({c.tipo})
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => quitarTermino(i)}
+              disabled={terminos.length === 1}
+              className="shrink-0 text-xs text-metal-500 hover:text-danger disabled:opacity-30"
+            >
+              Quitar
+            </button>
+          </div>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={() => onChange([...terminos, TERMINO_VACIO()])}
+        className="mt-2 text-xs text-electric-400 hover:text-electric-300"
+      >
+        + Agregar categoría
+      </button>
+    </div>
+  )
+}
+
+function IndicadorForm({ categorias, onCancelar, onGuardar }) {
+  const [nombre, setNombre] = useState('')
+  const [monedaIndicador, setMonedaIndicador] = useState('ARS')
+  const [esRatio, setEsRatio] = useState(false)
+  const [formato, setFormato] = useState('moneda')
+  const [numerador, setNumerador] = useState([TERMINO_VACIO()])
+  const [denominador, setDenominador] = useState([TERMINO_VACIO()])
+  const [guardando, setGuardando] = useState(false)
+  const [error, setError] = useState('')
+
+  function handleToggleRatio(e) {
+    const activo = e.target.checked
+    setEsRatio(activo)
+    setFormato(activo ? 'porcentaje' : 'moneda')
+  }
+
+  async function handleSubmit(e) {
+    e.preventDefault()
+    setError('')
+
+    const numeradorLimpio = numerador.filter((t) => t.categoria_id)
+    const denominadorLimpio = esRatio ? denominador.filter((t) => t.categoria_id) : []
+
+    if (!nombre.trim()) {
+      setError('Ponele un nombre al indicador.')
+      return
+    }
+    if (numeradorLimpio.length === 0) {
+      setError('Elegí al menos una categoría.')
+      return
+    }
+    if (esRatio && denominadorLimpio.length === 0) {
+      setError('Si es un ratio, elegí al menos una categoría para el denominador.')
+      return
+    }
+
+    setGuardando(true)
+    try {
+      await onGuardar({
+        nombre: nombre.trim(),
+        moneda: monedaIndicador,
+        formato,
+        numerador: numeradorLimpio,
+        denominador: denominadorLimpio,
+      })
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setGuardando(false)
+    }
+  }
+
+  return (
+    <form
+      onSubmit={handleSubmit}
+      className="mt-4 space-y-4 rounded-xl border border-metal-700 bg-graphite-900/60 p-4"
+    >
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+        <div>
+          <label className="label-field" htmlFor="nombreIndicador">
+            Nombre
+          </label>
+          <input
+            id="nombreIndicador"
+            className="input-field"
+            value={nombre}
+            onChange={(e) => setNombre(e.target.value)}
+            placeholder='Ej: "Margen operativo"'
+          />
+        </div>
+        <div>
+          <label className="label-field" htmlFor="monedaIndicador">
+            Moneda
+          </label>
+          <select
+            id="monedaIndicador"
+            className="input-field"
+            value={monedaIndicador}
+            onChange={(e) => setMonedaIndicador(e.target.value)}
+          >
+            <option value="ARS">Pesos ($)</option>
+            <option value="USD">Dólares (US$)</option>
+          </select>
+        </div>
+      </div>
+
+      <TerminosBuilder
+        titulo="Numerador"
+        categorias={categorias}
+        terminos={numerador}
+        onChange={setNumerador}
+      />
+
+      <label className="flex items-center gap-2 text-sm text-metal-300">
+        <input
+          type="checkbox"
+          className="h-4 w-4 rounded border-metal-600 bg-graphite-800 text-electric-600 focus:ring-electric-500"
+          checked={esRatio}
+          onChange={handleToggleRatio}
+        />
+        Es un ratio o porcentaje (dividir por otra suma de categorías)
+      </label>
+
+      {esRatio && (
+        <TerminosBuilder
+          titulo="Denominador"
+          categorias={categorias}
+          terminos={denominador}
+          onChange={setDenominador}
+        />
+      )}
+
+      <div>
+        <label className="label-field" htmlFor="formatoIndicador">
+          Cómo mostrarlo
+        </label>
+        <select
+          id="formatoIndicador"
+          className="input-field !w-auto"
+          value={formato}
+          onChange={(e) => setFormato(e.target.value)}
+        >
+          <option value="moneda">Moneda ({monedaIndicador === 'USD' ? 'US$' : '$'}1.234)</option>
+          <option value="numero">Número (1,23)</option>
+          <option value="porcentaje">Porcentaje (12,3%)</option>
+        </select>
+      </div>
+
+      {error && (
+        <p className="rounded-lg bg-danger/10 px-3 py-2 text-sm text-danger">{error}</p>
+      )}
+
+      <div className="flex gap-2">
+        <button type="submit" className="btn-primary text-sm" disabled={guardando}>
+          {guardando ? 'Guardando…' : 'Guardar indicador'}
+        </button>
+        <button type="button" onClick={onCancelar} className="btn-secondary text-sm">
+          Cancelar
+        </button>
+      </div>
+    </form>
+  )
+}
+
 export default function Reportes() {
-  const { profile } = useAuth()
+  const { user, profile } = useAuth()
   const { empresaActiva } = useEmpresa()
   const [movimientos, setMovimientos] = useState([])
   const [clientes, setClientes] = useState([])
   const [proveedores, setProveedores] = useState([])
+  const [categoriasEmpresa, setCategoriasEmpresa] = useState([])
+  const [indicadores, setIndicadores] = useState([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [moneda, setMoneda] = useState('ARS')
   const [mesDesde, setMesDesde] = useState('')
   const [mesHasta, setMesHasta] = useState('')
   const [exportando, setExportando] = useState(false)
+  const [mostrarFormIndicador, setMostrarFormIndicador] = useState(false)
   const barRef = useRef(null)
   const doughnutEgresoRef = useRef(null)
   const doughnutIngresoRef = useRef(null)
@@ -118,11 +325,15 @@ export default function Reportes() {
       listMovimientos({ empresaId: empresaActiva.id }),
       listClientes(empresaActiva.id),
       listProveedores(empresaActiva.id),
+      listCategorias(empresaActiva.id),
+      listIndicadores(empresaActiva.id),
     ])
-      .then(([mov, cli, prov]) => {
+      .then(([mov, cli, prov, cat, ind]) => {
         setMovimientos(mov)
         setClientes(cli)
         setProveedores(prov)
+        setCategoriasEmpresa(cat)
+        setIndicadores(ind)
       })
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false))
@@ -168,6 +379,17 @@ export default function Reportes() {
       return mes >= mesDesde && mes <= mesHasta
     })
   }, [movimientosMoneda, mesDesde, mesHasta])
+
+  // Los indicadores tienen su propia moneda (independiente del selector $/US$
+  // de la página), así que se calculan sobre todas las monedas y cada uno
+  // filtra la suya adentro de calcularIndicador().
+  const movimientosPeriodo = useMemo(() => {
+    if (!mesDesde || !mesHasta) return movimientos
+    return movimientos.filter((m) => {
+      const mes = m.fecha.slice(0, 7)
+      return mes >= mesDesde && mes <= mesHasta
+    })
+  }, [movimientos, mesDesde, mesHasta])
 
   function cambiarMesDesde(valor) {
     setMesDesde(valor)
@@ -230,6 +452,31 @@ export default function Reportes() {
     },
   }
 
+  const valoresIndicadores = useMemo(
+    () =>
+      indicadores.map((ind) => ({
+        indicador: ind,
+        valor: calcularIndicador(ind, movimientosPeriodo),
+      })),
+    [indicadores, movimientosPeriodo]
+  )
+
+  async function handleCrearIndicador(datos) {
+    const nuevo = await crearIndicador({
+      empresaId: empresaActiva.id,
+      userId: user.id,
+      ...datos,
+    })
+    setIndicadores((prev) => [...prev, nuevo])
+    setMostrarFormIndicador(false)
+  }
+
+  async function handleEliminarIndicador(id) {
+    if (!window.confirm('¿Eliminar este indicador?')) return
+    await eliminarIndicador(id)
+    setIndicadores((prev) => prev.filter((i) => i.id !== id))
+  }
+
   async function exportar() {
     setExportando(true)
     try {
@@ -241,6 +488,10 @@ export default function Reportes() {
         proveedores: proveedoresMoneda,
         evolucion: serieEvolucion,
         movimientos: movimientosFiltrados,
+        indicadores: valoresIndicadores.map(({ indicador, valor }) => ({
+          nombre: indicador.nombre,
+          valor: formatearIndicador(valor, indicador),
+        })),
         graficos: [
           { titulo: 'Evolución mensual', base64: barRef.current?.toBase64Image() },
           { titulo: 'Egresos por categoría', base64: doughnutEgresoRef.current?.toBase64Image() },
@@ -354,6 +605,59 @@ export default function Reportes() {
         <p className="text-sm text-metal-400">Cargando…</p>
       ) : (
         <div className="space-y-6">
+          <div className="card">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="font-semibold text-white">Indicadores propios</h2>
+                <p className="text-sm text-metal-400">
+                  Armá tus propios KPIs combinando categorías (sumas, restas o ratios).
+                </p>
+              </div>
+              <button
+                type="button"
+                className="btn-secondary text-sm"
+                onClick={() => setMostrarFormIndicador((v) => !v)}
+              >
+                {mostrarFormIndicador ? 'Cancelar' : '+ Crear indicador'}
+              </button>
+            </div>
+
+            {mostrarFormIndicador && (
+              <IndicadorForm
+                categorias={categoriasEmpresa}
+                onCancelar={() => setMostrarFormIndicador(false)}
+                onGuardar={handleCrearIndicador}
+              />
+            )}
+
+            {valoresIndicadores.length === 0 ? (
+              <p className="mt-4 text-sm text-metal-500">
+                Todavía no creaste ningún indicador. Ejemplos: "Margen operativo" (Ventas −
+                Costos), "% gastos fijos sobre ingresos" (Alquiler + Sueldos / Ventas).
+              </p>
+            ) : (
+              <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {valoresIndicadores.map(({ indicador, valor }) => (
+                  <div key={indicador.id} className="rounded-xl border border-metal-700 p-4">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm text-metal-300">{indicador.nombre}</p>
+                      <button
+                        type="button"
+                        onClick={() => handleEliminarIndicador(indicador.id)}
+                        className="shrink-0 text-xs text-metal-500 hover:text-danger"
+                      >
+                        Eliminar
+                      </button>
+                    </div>
+                    <p className="mt-1 text-2xl font-semibold text-white">
+                      {formatearIndicador(valor, indicador)}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
           <div className="card">
             <h2 className="font-semibold text-white">
               Evolución mensual

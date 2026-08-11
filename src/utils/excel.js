@@ -88,6 +88,7 @@ export async function descargarReporteExcel({
   proveedores,
   evolucion,
   movimientos = [],
+  indicadores = [],
   graficos = [],
 }) {
   const { default: ExcelJS } = await import('exceljs')
@@ -126,6 +127,15 @@ export async function descargarReporteExcel({
         filaActual += 1
       }
     }
+  }
+
+  if (indicadores.length > 0) {
+    agregarTabla(
+      libro.addWorksheet('Indicadores'),
+      'TablaIndicadores',
+      ['Indicador', 'Valor'],
+      indicadores.map((i) => [i.nombre, i.valor])
+    )
   }
 
   agregarTabla(
