@@ -252,6 +252,8 @@ export default function Movimientos() {
           <ImportMovimientosButton
             cuentas={cuentas}
             categorias={categorias}
+            clientes={clientes}
+            proveedores={proveedores}
             onImported={(nuevos) =>
               setMovimientos((prev) =>
                 [...prev, ...nuevos].sort((a, b) => a.fecha.localeCompare(b.fecha))

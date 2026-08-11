@@ -7,6 +7,8 @@ import { bulkInsertMovimientos } from '../services/movimientos'
 export default function ImportMovimientosButton({
   cuentas,
   categorias,
+  clientes = [],
+  proveedores = [],
   onImported,
   onError,
 }) {
@@ -14,6 +16,7 @@ export default function ImportMovimientosButton({
   const { empresaActiva } = useEmpresa()
   const inputRef = useRef(null)
   const [importando, setImportando] = useState(false)
+  const [generandoModelo, setGenerandoModelo] = useState(false)
   const [resumen, setResumen] = useState('')
 
   async function handleFile(e) {
@@ -27,6 +30,8 @@ export default function ImportMovimientosButton({
       const { validos, invalidos, avisos } = await leerMovimientosExcel(file, {
         cuentas,
         categorias,
+        clientes,
+        proveedores,
       })
 
       let insertados = []
@@ -37,7 +42,7 @@ export default function ImportMovimientosButton({
 
       const partes = [`${insertados.length} movimiento(s) importado(s)`]
       if (avisos.length > 0) {
-        partes.push(`${avisos.length} con cuenta o categoría no reconocida (se importaron igual, sin esa asignación)`)
+        partes.push(`${avisos.length} con algún dato (cuenta/categoría/cliente/proveedor) no reconocido, importados igual sin esa asignación`)
       }
       if (invalidos.length > 0) {
         partes.push(`${invalidos.length} fila(s) omitida(s) por datos inválidos`)
@@ -47,6 +52,17 @@ export default function ImportMovimientosButton({
       onError?.(err.message)
     } finally {
       setImportando(false)
+    }
+  }
+
+  async function handleDescargarModelo() {
+    setGenerandoModelo(true)
+    try {
+      await descargarModeloMovimientosExcel({ cuentas, categorias, clientes, proveedores })
+    } catch (err) {
+      onError?.(err.message)
+    } finally {
+      setGenerandoModelo(false)
     }
   }
 
@@ -64,9 +80,10 @@ export default function ImportMovimientosButton({
         <button
           type="button"
           className="text-sm text-electric-400 hover:text-electric-300"
-          onClick={() => descargarModeloMovimientosExcel({ cuentas, categorias })}
+          disabled={generandoModelo}
+          onClick={handleDescargarModelo}
         >
-          Descargar modelo
+          {generandoModelo ? 'Generando…' : 'Descargar modelo'}
         </button>
       </div>
       <input

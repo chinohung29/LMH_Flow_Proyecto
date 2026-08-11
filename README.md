@@ -109,10 +109,15 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
 - Importación de movimientos: se corrige un bug real donde las fechas
   DD/MM/AAAA se guardaban con día y mes invertidos, se agrega soporte
   para montos en formato argentino como texto ("1.234,56"), se avisa
-  (sin rechazar) cuando una Cuenta/Categoría del archivo no coincide
-  con ninguna existente, y se agrega un botón "Descargar modelo" que
-  genera un .xlsx con los encabezados correctos y las cuentas/
-  categorías reales del usuario para copiar el nombre exacto
+  (sin rechazar) cuando una Cuenta/Categoría/Cliente/Proveedor del
+  archivo no coincide con ninguno existente, y se agrega un botón
+  "Descargar modelo" que genera un .xlsx (con exceljs, para poder
+  escribir validación de datos) con desplegables reales de Excel en
+  Tipo/Moneda/Estado/Cuenta/Categoría/Cliente/Proveedor — estos
+  últimos cuatro apuntan a una hoja "Listas" oculta con los nombres
+  reales del usuario, así no hace falta escribirlos a mano ni
+  arriesgarse a un typo. Se agregan también columnas Cliente/Proveedor
+  al export/import de movimientos, que antes no existían
 - Cumplimiento legal: Política de Privacidad (`/privacidad`) y
   Términos y Condiciones (`/terminos`, incluye derecho de
   arrepentimiento de 10 días según Res. 424/2020), enlazados desde el
