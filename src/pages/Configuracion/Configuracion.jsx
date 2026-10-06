@@ -207,10 +207,18 @@ export default function Configuracion() {
           Tu plan actual: <span className="text-white">{NOMBRE_PLAN[profile?.plan] ?? profile?.plan}</span>
         </p>
 
-        {profile?.plan_vence_el && (
+        {profile?.plan_vence_el && !profile?.mp_preapproval_id && (
           <p className="mt-2 rounded-lg border border-warning/40 bg-warning/10 px-3 py-2 text-xs text-warning">
             Cancelaste la renovación automática. Conservás el acceso a tu plan hasta el{' '}
             {formatDate(profile.plan_vence_el)}.
+          </p>
+        )}
+
+        {profile?.plan_vence_el && profile?.mp_preapproval_id && (
+          <p className="mt-2 rounded-lg border border-danger/40 bg-danger/10 px-3 py-2 text-xs text-danger">
+            No pudimos cobrar tu suscripción. Regularizá el pago en Mercado Pago antes del{' '}
+            {formatDate(profile.plan_vence_el)}; pasada esa fecha tu cuenta pasa a &quot;Sin plan
+            activo&quot;.
           </p>
         )}
 
