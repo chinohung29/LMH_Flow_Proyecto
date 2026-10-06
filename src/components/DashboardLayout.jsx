@@ -6,6 +6,7 @@ import { useAuth } from '../context/AuthContext'
 
 const NAV_ITEMS = [
   { to: '/dashboard', label: 'Dashboard', icon: '📊' },
+  { to: '/hoy', label: 'Hoy', icon: '☀️' },
   { to: '/movimientos', label: 'Movimientos', icon: '💸' },
   { to: '/categorias', label: 'Categorías', icon: '🏷️' },
   { to: '/flujo', label: 'Flujo de caja', icon: '📈' },

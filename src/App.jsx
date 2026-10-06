@@ -6,6 +6,7 @@ import Registro from './pages/Auth/Registro'
 import OlvidePassword from './pages/Auth/OlvidePassword'
 import RestablecerPassword from './pages/Auth/RestablecerPassword'
 import Dashboard from './pages/Dashboard/Dashboard'
+import Hoy from './pages/Hoy/Hoy'
 import Movimientos from './pages/Movimientos/Movimientos'
 import Categorias from './pages/Categorias/Categorias'
 import Flujo from './pages/Flujo/Flujo'
@@ -41,6 +42,7 @@ export default function App() {
       <Route path="/terminos" element={<Terminos />} />
       <Route path="/arrepentimiento" element={<Arrepentimiento />} />
       <Route path="/dashboard" element={withProtection(Dashboard)} />
+      <Route path="/hoy" element={withProtection(Hoy)} />
       <Route path="/movimientos" element={withProtection(Movimientos)} />
       <Route path="/categorias" element={withProtection(Categorias)} />
       <Route path="/flujo" element={withProtection(Flujo)} />

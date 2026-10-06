@@ -15,6 +15,7 @@ import {
 import { formatCurrency, formatDate } from '../../utils/format'
 import ExportMovimientosButton from '../../components/ExportMovimientosButton'
 import ImportMovimientosButton from '../../components/ImportMovimientosButton'
+import ReplicarMesButton from '../../components/ReplicarMesButton'
 
 const HOY = new Date().toISOString().slice(0, 10)
 
@@ -254,6 +255,15 @@ export default function Movimientos() {
             categorias={categorias}
             clientes={clientes}
             proveedores={proveedores}
+            onImported={(nuevos) =>
+              setMovimientos((prev) =>
+                [...prev, ...nuevos].sort((a, b) => a.fecha.localeCompare(b.fecha))
+              )
+            }
+            onError={setError}
+          />
+          <ReplicarMesButton
+            movimientos={movimientos}
             onImported={(nuevos) =>
               setMovimientos((prev) =>
                 [...prev, ...nuevos].sort((a, b) => a.fecha.localeCompare(b.fecha))
