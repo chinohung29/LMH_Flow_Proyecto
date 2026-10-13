@@ -82,7 +82,7 @@ básicas sembradas automáticamente (`supabase/schema_sprint2.sql`).
   facturación y de proveedores por gasto, todo por moneda y exportable a
   Excel (`descargarReporteExcel` en `src/utils/excel.js`)
 - Suscripciones pagas de LMH Flow vía Mercado Pago (cobro recurrente en
-  ARS al dólar oficial del día — ver sección **Cobros con Mercado Pago**
+  ARS, precio fijo — ver sección **Cobros con Mercado Pago**
   más abajo): desde Configuración, el usuario elige Starter o Platinum y
   paga con Mercado Pago; un webhook activa el plan automáticamente, y
   puede cancelar la renovación cuando quiera (conserva el acceso hasta
@@ -256,31 +256,28 @@ un aviso en pantalla cuando falta la configuración.
 
 Desde **Configuración → Plan y facturación**, el usuario elige un plan y
 Mercado Pago le cobra automáticamente todos los meses (Preapproval /
-Suscripciones). Los planes se definen en USD (`US$15`/`US$30` por mes,
-`PRECIOS_USD` en `src/utils/planes.js`) pero Mercado Pago solo admite
-cobro recurrente en ARS para cuentas de Argentina, así que el monto se
-calcula en pesos al **tipo de cambio oficial del día** (fuente:
-[dolarapi.com](https://dolarapi.com), sin necesidad de API key). El
-flujo vive en tres Edge Functions ya desplegadas en el proyecto de
-Supabase:
+Suscripciones). Los planes tienen **precio fijo en pesos** (`$20.000`
+Starter / `$35.000` Platinum por mes, `PRECIOS_ARS` en
+`src/utils/planes.js`). El flujo vive en cuatro Edge Functions ya
+desplegadas en el proyecto de Supabase:
 
-- `supabase/functions/mp-crear-suscripcion` — consulta la cotización
-  oficial del momento, crea el preapproval en Mercado Pago por el
-  equivalente en ARS y devuelve el link de pago (`init_point`) al que
-  se redirige al usuario.
+- `supabase/functions/mp-crear-suscripcion` — crea el preapproval en
+  Mercado Pago por el monto fijo del plan y devuelve el link de pago
+  (`init_point`) al que se redirige al usuario.
 - `supabase/functions/mp-webhook` — recibe la notificación de Mercado
   Pago, vuelve a consultar el estado real del preapproval contra la API
   (nunca confía en el payload entrante) y si está `authorized` activa el
   plan en `profiles.plan`.
 - `supabase/functions/mp-reajustar-precios` — corre una vez por día vía
-  `pg_cron` (migración `supabase/schema_sprint4_mp_dolar_cron.sql`) y
-  actualiza (`PUT /preapproval/{id}`) el monto en ARS de cada suscripción
-  ya activa según la cotización de ese día, para que el precio en pesos
-  de los que ya pagan seguido acompañe al dólar. También baja a
-  `plan='cancelado'` a quienes cancelaron y ya pasó su
-  `plan_vence_el`. Está protegida con un secret compartido
-  (`CRON_SECRET`) en vez de JWT, porque la llama `pg_cron` y no un
-  usuario logueado.
+  `pg_cron` (migración `supabase/schema_sprint4_mp_dolar_cron.sql`).
+  **Hasta el 13/10/2026 reajustaba el monto en ARS de cada suscripción
+  según la cotización oficial del dólar** (los planes estaban en USD de
+  referencia); al pasar a precio fijo en pesos esa parte se sacó. Lo que
+  queda es una red de seguridad: revisa el estado de cada preapproval
+  activo en Mercado Pago por si se perdió algún webhook, y baja a
+  `plan='cancelado'` a quienes cancelaron y ya pasó su `plan_vence_el`.
+  Sigue protegida con un secret compartido (`CRON_SECRET`) en vez de
+  JWT, porque la llama `pg_cron` y no un usuario logueado.
 - `supabase/functions/mp-cancelar-suscripcion` — desde el botón "Cancelar
   suscripción" en Configuración: cancela el preapproval en Mercado Pago
   (`status: cancelled`) pero el usuario conserva el plan actual hasta el

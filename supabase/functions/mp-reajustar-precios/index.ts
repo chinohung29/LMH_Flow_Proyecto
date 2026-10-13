@@ -1,26 +1,14 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { decidirCambio } from './decision.ts'
 
-// Corre una vez por día (pg_cron) para reajustar el monto en ARS de cada
-// suscripción activa según la cotización oficial del dólar del día. No la
+// Corre una vez por día (pg_cron). Ya NO reajusta precios por dólar — los
+// planes pasaron a precio fijo en pesos el 13/10/2026 (ver
+// src/utils/planes.js). Lo que queda acá es una red de seguridad: revisa
+// en Mercado Pago el estado de cada suscripción activa por si se perdió
+// algún webhook (pausada/cancelada sin que profiles se haya enterado), y
+// baja a 'cancelado' las que ya vencieron su período de gracia. No la
 // llama un usuario logueado, así que se protege con un secret compartido
 // en vez de verify_jwt.
-const PRECIOS_USD: Record<string, number> = {
-  starter: 15,
-  platinum: 30,
-}
-
-async function obtenerTasaOficial(): Promise<number> {
-  const resp = await fetch('https://dolarapi.com/v1/dolares/oficial')
-  if (!resp.ok) throw new Error('No se pudo obtener la cotización del dólar oficial.')
-  const data = await resp.json()
-  const venta = Number(data?.venta)
-  if (!venta || Number.isNaN(venta)) throw new Error('Cotización del dólar oficial inválida.')
-  return venta
-}
-
-function calcularPrecioARS(precioUSD: number, tasa: number): number {
-  return Math.round((precioUSD * tasa) / 100) * 100
-}
 
 Deno.serve(async (req: Request) => {
   const cronSecret = Deno.env.get('CRON_SECRET')
@@ -39,16 +27,6 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  let tasa: number
-  try {
-    tasa = await obtenerTasaOficial()
-  } catch (err) {
-    return new Response(
-      JSON.stringify({ error: err instanceof Error ? err.message : 'Error al obtener la cotización.' }),
-      { status: 502, headers: { 'Content-Type': 'application/json' } }
-    )
-  }
-
   const supabase = createClient(
     Deno.env.get('SUPABASE_URL')!,
     Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
@@ -56,7 +34,7 @@ Deno.serve(async (req: Request) => {
 
   const { data: suscriptores, error } = await supabase
     .from('profiles')
-    .select('id, plan, mp_preapproval_id')
+    .select('id, plan, mp_preapproval_id, plan_vence_el')
     .not('mp_preapproval_id', 'is', null)
     .in('plan', ['starter', 'platinum'])
 
@@ -67,22 +45,32 @@ Deno.serve(async (req: Request) => {
     })
   }
 
-  let actualizados = 0
+  let verificados = 0
+  let en_gracia = 0
   const fallidos: string[] = []
 
   for (const perfil of suscriptores ?? []) {
-    const monto = calcularPrecioARS(PRECIOS_USD[perfil.plan], tasa)
     try {
-      const resp = await fetch(`https://api.mercadopago.com/preapproval/${perfil.mp_preapproval_id}`, {
-        method: 'PUT',
-        headers: {
-          Authorization: `Bearer ${accessToken}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({ auto_recurring: { transaction_amount: monto } }),
-      })
-      if (resp.ok) {
-        actualizados++
+      // Red de seguridad por si se perdió algún aviso: si Mercado Pago ya
+      // tiene la suscripción pausada o cancelada, se abre la gracia.
+      const estadoResp = await fetch(
+        `https://api.mercadopago.com/preapproval/${perfil.mp_preapproval_id}`,
+        { headers: { Authorization: `Bearer ${accessToken}` } }
+      )
+      if (estadoResp.ok) {
+        const { status } = await estadoResp.json()
+        if (status === 'paused' || status === 'cancelled') {
+          const cambio = decidirCambio(
+            { tipo: 'preapproval', preapprovalId: perfil.mp_preapproval_id, status, plan: perfil.plan },
+            perfil,
+            new Date()
+          )
+          if (cambio) {
+            await supabase.from('profiles').update(cambio).eq('id', perfil.id)
+            en_gracia++
+          }
+        }
+        verificados++
       } else {
         fallidos.push(perfil.mp_preapproval_id)
       }
@@ -91,21 +79,21 @@ Deno.serve(async (req: Request) => {
     }
   }
 
-  // Suscripciones canceladas cuyo período ya pagado venció: se bajan a
-  // 'cancelado' (mismos límites que 'starter', sin acceso a Reportes ni
-  // a un nuevo trial).
+  // Suscripciones canceladas o con falta de pago cuyo período (pago o de
+  // gracia de 10 días) venció: se bajan a 'cancelado' (mismos límites que
+  // 'starter', sin acceso a Reportes ni a un nuevo trial).
   const { data: vencidos, error: errorVencidos } = await supabase
     .from('profiles')
-    .update({ plan: 'cancelado', plan_vence_el: null })
+    .update({ plan: 'cancelado', plan_vence_el: null, mp_preapproval_id: null })
     .lte('plan_vence_el', new Date().toISOString())
     .in('plan', ['starter', 'platinum'])
     .select('id')
 
   return new Response(
     JSON.stringify({
-      tasa,
       total: suscriptores?.length ?? 0,
-      actualizados,
+      verificados,
+      en_gracia,
       fallidos,
       bajados_por_vencimiento: errorVencidos ? null : vencidos?.length ?? 0,
     }),

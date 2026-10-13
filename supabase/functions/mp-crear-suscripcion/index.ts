@@ -1,13 +1,12 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 
-// Precios en USD: se cobran en ARS al tipo de cambio oficial del día
-// (Mercado Pago no admite cobro recurrente en USD para cuentas de
-// Argentina). El monto se recalcula acá en cada alta, y además se
-// reajusta periódicamente para los que ya están suscriptos (ver
-// mp-reajustar-precios).
-const PRECIOS_USD: Record<string, number> = {
-  starter: 15,
-  platinum: 30,
+// Precios fijos en pesos argentinos (no atados al dólar). Hasta el
+// 13/10/2026 se cobraba en ARS al tipo de cambio oficial del día; se pasó a
+// precio fijo a pedido explícito del usuario. Mantener sincronizado con
+// src/utils/planes.js y mp-reajustar-precios/index.ts.
+const PRECIOS_ARS: Record<string, number> = {
+  starter: 20000,
+  platinum: 35000,
 }
 
 const NOMBRES_PLAN: Record<string, string> = {
@@ -18,20 +17,6 @@ const NOMBRES_PLAN: Record<string, string> = {
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-async function obtenerTasaOficial(): Promise<number> {
-  const resp = await fetch('https://dolarapi.com/v1/dolares/oficial')
-  if (!resp.ok) throw new Error('No se pudo obtener la cotización del dólar oficial.')
-  const data = await resp.json()
-  const venta = Number(data?.venta)
-  if (!venta || Number.isNaN(venta)) throw new Error('Cotización del dólar oficial inválida.')
-  return venta
-}
-
-function calcularPrecioARS(precioUSD: number, tasa: number): number {
-  // Redondeado a la centena más cercana para que el monto quede prolijo.
-  return Math.round((precioUSD * tasa) / 100) * 100
 }
 
 Deno.serve(async (req: Request) => {
@@ -74,20 +59,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    let tasa: number
-    try {
-      tasa = await obtenerTasaOficial()
-    } catch (err) {
-      return new Response(
-        JSON.stringify({
-          error:
-            'No se pudo obtener la cotización del dólar para calcular el precio. Probá de nuevo en unos minutos.',
-        }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      )
-    }
-
-    const monto = calcularPrecioARS(PRECIOS_USD[plan], tasa)
+    const monto = PRECIOS_ARS[plan]
     const appUrl = Deno.env.get('APP_URL') ?? 'https://lmh-flowfinance.netlify.app'
 
     const mpResponse = await fetch('https://api.mercadopago.com/preapproval', {
@@ -97,7 +69,7 @@ Deno.serve(async (req: Request) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        reason: `${NOMBRES_PLAN[plan]} (USD ${PRECIOS_USD[plan]}/mes)`,
+        reason: `${NOMBRES_PLAN[plan]} ($${monto}/mes)`,
         external_reference: `${user.id}:${plan}`,
         payer_email: user.email,
         back_url: `${appUrl}/configuracion`,
@@ -126,7 +98,7 @@ Deno.serve(async (req: Request) => {
       )
     }
 
-    return new Response(JSON.stringify({ init_point: mpData.init_point, monto, tasa }), {
+    return new Response(JSON.stringify({ init_point: mpData.init_point, monto }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
