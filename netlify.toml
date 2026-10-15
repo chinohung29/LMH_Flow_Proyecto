@@ -6,3 +6,24 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+# Cabeceras de seguridad (auditoría). La CSP permite solo recursos propios y
+# la API de Supabase (REST, Auth, Edge Functions y Realtime). Los estilos
+# en línea se mantienen porque Chart.js y las librerías de UI inyectan
+# atributos style; los scripts no (sin 'unsafe-inline' ni 'unsafe-eval').
+[[headers]]
+  for = "/*"
+  [headers.values]
+    Content-Security-Policy = "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    X-Frame-Options = "DENY"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    Strict-Transport-Security = "max-age=31536000; includeSubDomains"
+    Permissions-Policy = "camera=(), microphone=(), geolocation=(), payment=()"
+
+# El service worker no debe quedar cacheado: así las actualizaciones (y los
+# arreglos de seguridad) llegan en la siguiente visita.
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"

@@ -134,6 +134,11 @@ Reglas:
 
 const GROQ_MODEL = 'llama-3.3-70b-versatile'
 
+// Límites de abuso: cada consulta cuesta plata (API de Groq).
+const LIMITE_CONSULTAS_POR_HORA = 30
+const MAX_LARGO_MENSAJE = 2000
+const MAX_MENSAJES_HISTORIAL = 10
+
 // Groq expone una API compatible con OpenAI: el system prompt va como un
 // mensaje más (role "system") al principio del array de "messages".
 async function llamarGroq(accessToken: string, system: string, messages: Array<{ role: string; content: string }>, maxTokens: number) {
@@ -152,7 +157,7 @@ async function llamarGroq(accessToken: string, system: string, messages: Array<{
   const data = await resp.json()
   if (!resp.ok) {
     console.error('Groq API error:', resp.status, JSON.stringify(data))
-    throw new Error(data?.error?.message ?? 'Error al consultar la IA.')
+    throw new Error('Error al consultar la IA.')
   }
   const texto = data?.choices?.[0]?.message?.content ?? ''
   return texto
@@ -212,6 +217,23 @@ Deno.serve(async (req: Request) => {
       )
     }
 
+    // Tope de consultas por usuario y por hora (se cuenta con service role: la
+    // tabla ia_consultas no es accesible desde el cliente).
+    const admin = createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!)
+    const desde = new Date(Date.now() - 60 * 60 * 1000).toISOString()
+    const { count: consultasRecientes } = await admin
+      .from('ia_consultas')
+      .select('id', { count: 'exact', head: true })
+      .eq('user_id', user.id)
+      .gte('created_at', desde)
+    if ((consultasRecientes ?? 0) >= LIMITE_CONSULTAS_POR_HORA) {
+      return new Response(
+        JSON.stringify({ error: 'Llegaste al límite de consultas por hora a la IA. Probá de nuevo en un rato.' }),
+        { status: 429, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+    await admin.from('ia_consultas').insert({ user_id: user.id })
+
     const { data: empresa } = await supabase
       .from('empresas')
       .select('nombre')
@@ -256,15 +278,28 @@ ${contexto}`
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       })
     }
+    if (mensaje.length > MAX_LARGO_MENSAJE) {
+      return new Response(
+        JSON.stringify({ error: `El mensaje es demasiado largo (máximo ${MAX_LARGO_MENSAJE} caracteres).` }),
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
 
     const system = `${SYSTEM_BASE}
 
 Respondé la consulta del usuario usando estos datos financieros de su empresa:
 ${contexto}`
 
-    const historialLimitado = Array.isArray(historial) ? historial.slice(-10) : []
+    // Solo se aceptan turnos user/assistant: un cliente no puede inyectar
+    // mensajes con rol "system" ni historiales gigantes.
+    const historialLimitado = (Array.isArray(historial) ? historial : [])
+      .filter((h: any) => h && (h.role === 'user' || h.role === 'assistant'))
+      .slice(-MAX_MENSAJES_HISTORIAL)
     const messages = [
-      ...historialLimitado.map((h: any) => ({ role: h.role, content: String(h.content) })),
+      ...historialLimitado.map((h: any) => ({
+        role: h.role,
+        content: String(h.content ?? '').slice(0, MAX_LARGO_MENSAJE),
+      })),
       { role: 'user', content: mensaje },
     ]
 
@@ -274,7 +309,8 @@ ${contexto}`
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Error inesperado.' }), {
+    console.error('ia-financiera:', err)
+    return new Response(JSON.stringify({ error: 'Error inesperado. Probá de nuevo en unos minutos.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })

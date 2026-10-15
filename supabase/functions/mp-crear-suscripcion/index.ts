@@ -102,7 +102,8 @@ Deno.serve(async (req: Request) => {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
-    return new Response(JSON.stringify({ error: err instanceof Error ? err.message : 'Error inesperado.' }), {
+    console.error('mp-crear-suscripcion:', err)
+    return new Response(JSON.stringify({ error: 'Error inesperado. Probá de nuevo en unos minutos.' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
