@@ -1,38 +1,10 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { NOMBRE_MONEDA, calcularResumen, formatearMonto, insightsLocales } from './analisis.ts'
+import { ErrorProveedor, llamarGroq } from './groq.ts'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
-const NOMBRE_MONEDA: Record<string, string> = { ARS: 'Pesos (ARS)', USD: 'Dólares (USD)' }
-
-function calcularResumen(movimientos: any[], cuentas: any[]) {
-  const saldoInicial = cuentas.reduce((acc, c) => acc + Number(c.saldo_inicial || 0), 0)
-  let saldoDisponible = saldoInicial
-  let cobrosPendientes = 0
-  let pagosPendientes = 0
-  for (const m of movimientos) {
-    const monto = Number(m.monto)
-    if (m.estado === 'realizado') {
-      saldoDisponible += m.tipo === 'ingreso' ? monto : -monto
-    } else if (m.tipo === 'ingreso') {
-      cobrosPendientes += monto
-    } else {
-      pagosPendientes += monto
-    }
-  }
-  return {
-    saldoDisponible,
-    saldoProyectado: saldoDisponible + cobrosPendientes - pagosPendientes,
-    cobrosPendientes,
-    pagosPendientes,
-  }
-}
-
-function formatearMonto(monto: number, moneda: string) {
-  const signo = moneda === 'USD' ? 'US$' : '$'
-  return `${signo}${Math.round(monto).toLocaleString('es-AR')}`
 }
 
 async function construirContexto(supabase: any, empresaId: string, nombreEmpresa: string) {
@@ -121,7 +93,7 @@ async function construirContexto(supabase: any, empresaId: string, nombreEmpresa
     lineas.push('--- Proveedores con pagos pendientes ---', ...proveedoresPendientes, '')
   }
 
-  return lineas.join('\n')
+  return { texto: lineas.join('\n'), cuentas: cuentas ?? [], movimientos: movimientos ?? [] }
 }
 
 const SYSTEM_BASE = `Sos el asesor financiero de LMH Flow, una app de flujo de caja para pequeñas empresas y profesionales de Argentina. Respondés en español rioplatense, de forma profesional pero cercana y directa.
@@ -132,36 +104,10 @@ Reglas:
 - Los montos en pesos y en dólares son independientes, nunca los sumes entre sí.
 - Sé concreto: priorizá números y hechos por sobre generalidades.`
 
-const GROQ_MODEL = 'llama-3.3-70b-versatile'
-
-// Límites de abuso: cada consulta cuesta plata (API de Groq).
+// Límites de abuso: cada consulta cuesta plata (API de la IA).
 const LIMITE_CONSULTAS_POR_HORA = 30
 const MAX_LARGO_MENSAJE = 2000
 const MAX_MENSAJES_HISTORIAL = 10
-
-// Groq expone una API compatible con OpenAI: el system prompt va como un
-// mensaje más (role "system") al principio del array de "messages".
-async function llamarGroq(accessToken: string, system: string, messages: Array<{ role: string; content: string }>, maxTokens: number) {
-  const resp = await fetch('https://api.groq.com/openai/v1/chat/completions', {
-    method: 'POST',
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      'content-type': 'application/json',
-    },
-    body: JSON.stringify({
-      model: GROQ_MODEL,
-      messages: [{ role: 'system', content: system }, ...messages],
-      max_tokens: maxTokens,
-    }),
-  })
-  const data = await resp.json()
-  if (!resp.ok) {
-    console.error('Groq API error:', resp.status, JSON.stringify(data))
-    throw new Error('Error al consultar la IA.')
-  }
-  const texto = data?.choices?.[0]?.message?.content ?? ''
-  return texto
-}
 
 Deno.serve(async (req: Request) => {
   if (req.method === 'OPTIONS') {
@@ -240,7 +186,11 @@ Deno.serve(async (req: Request) => {
       .eq('id', perfil.empresa_activa_id)
       .single()
 
-    const contexto = await construirContexto(supabase, perfil.empresa_activa_id, empresa?.nombre ?? 'tu empresa')
+    const { texto: contexto, cuentas, movimientos } = await construirContexto(
+      supabase,
+      perfil.empresa_activa_id,
+      empresa?.nombre ?? 'tu empresa'
+    )
 
     if (modo === 'insights') {
       const system = `${SYSTEM_BASE}
@@ -253,22 +203,28 @@ Respondé ÚNICAMENTE con un array JSON válido, sin texto antes ni después, co
 Datos financieros:
 ${contexto}`
 
-      const texto = await llamarGroq(accessToken, system, [{ role: 'user', content: 'Generá los insights.' }], 700)
+      // Observaciones calculadas por la app: respaldo si la IA no responde o
+      // devuelve algo inutilizable, para que el botón nunca quede en error.
+      const hoy = new Date().toISOString().slice(0, 10)
+      const enSiete = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10)
+      const respaldo = () =>
+        new Response(
+          JSON.stringify({ insights: insightsLocales(movimientos, cuentas, hoy, enSiete), origen: 'local' }),
+          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
 
-      let insights
       try {
+        const texto = await llamarGroq(accessToken, system, [{ role: 'user', content: 'Generá los insights.' }], 700)
         const match = texto.match(/\[[\s\S]*\]/)
-        insights = JSON.parse(match ? match[0] : texto)
-      } catch {
-        return new Response(JSON.stringify({ error: 'La IA devolvió una respuesta inesperada. Probá de nuevo.' }), {
-          status: 502,
+        const insights = JSON.parse(match ? match[0] : texto)
+        if (!Array.isArray(insights) || insights.length === 0) return respaldo()
+        return new Response(JSON.stringify({ insights, origen: 'ia' }), {
           headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         })
+      } catch (err) {
+        console.error('ia-financiera: insights con respaldo local:', err)
+        return respaldo()
       }
-
-      return new Response(JSON.stringify({ insights }), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      })
     }
 
     // modo 'chat' (default)
@@ -309,6 +265,12 @@ ${contexto}`
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     })
   } catch (err) {
+    if (err instanceof ErrorProveedor) {
+      return new Response(JSON.stringify({ error: err.message }), {
+        status: err.status,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      })
+    }
     console.error('ia-financiera:', err)
     return new Response(JSON.stringify({ error: 'Error inesperado. Probá de nuevo en unos minutos.' }), {
       status: 500,
