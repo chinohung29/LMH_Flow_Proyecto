@@ -37,12 +37,12 @@ export async function establecerEmpresaActiva(empresaId) {
 }
 
 export async function listMiembros(empresaId) {
-  const { data, error } = await supabase
-    .from('empresa_miembros')
-    .select('id, rol, created_at, user_id, profile:profiles(nombre,email)')
-    .eq('empresa_id', empresaId)
-    .order('created_at', { ascending: true })
+  const { data: filas, error } = await supabase.rpc('listar_miembros', { p_empresa_id: empresaId })
   if (error) throw error
+  const data = (filas ?? []).map(({ nombre, email, ...miembro }) => ({
+    ...miembro,
+    profile: { nombre, email },
+  }))
   return data
 }
 
