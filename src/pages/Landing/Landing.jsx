@@ -37,7 +37,7 @@ const FEATURES = [
 const PLANS = [
   {
     name: 'Starter',
-    price: 15,
+    price: 20000,
     highlight: false,
     features: [
       '1 empresa',
@@ -54,7 +54,7 @@ const PLANS = [
   },
   {
     name: 'Platinum',
-    price: 30,
+    price: 35000,
     highlight: true,
     features: [
       'Todo lo de Starter',
@@ -149,8 +149,10 @@ export default function Landing() {
               )}
               <h3 className="text-xl font-semibold text-white">{plan.name}</h3>
               <p className="mt-2">
-                <span className="text-4xl font-bold text-white">${plan.price}</span>
-                <span className="text-metal-400"> USD / mes</span>
+                <span className="text-4xl font-bold text-white">
+                  ${plan.price.toLocaleString('es-AR')}
+                </span>
+                <span className="text-metal-400"> / mes</span>
               </p>
               <ul className="mt-6 flex-1 space-y-2.5 text-sm text-metal-300">
                 {plan.features.map((f) => (

@@ -1,5 +1,5 @@
 // Decide qué cambiar en profiles según lo que informa Mercado Pago.
-// OJO: copia idéntica en mp-reajustar-precios/decision.ts (se despliega cada función por separado).
+// OJO: copia idéntica en mp-webhook/decision.ts (se despliega cada función por separado).
 // Lógica pura (sin red ni base) para poder probarla. La usan mp-webhook y
 // mp-reajustar-precios.
 //

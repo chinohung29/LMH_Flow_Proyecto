@@ -3,7 +3,7 @@ import LegalLayout from '../../components/LegalLayout'
 
 export default function Terminos() {
   return (
-    <LegalLayout titulo="Términos y Condiciones" actualizado="6 de agosto de 2026">
+    <LegalLayout titulo="Términos y Condiciones" actualizado="13 de octubre de 2026">
       <p>
         Estos Términos y Condiciones regulan el uso de <strong>LMH Flow</strong>, un servicio de
         gestión de flujo de caja ofrecido por Luis Martínez (LMH Consulting), CUIT
@@ -42,9 +42,8 @@ export default function Terminos() {
           </li>
           <li>
             Los planes pagos (Starter y Platinum) se cobran mensualmente en pesos argentinos, a
-            través de Mercado Pago, al tipo de cambio oficial del dólar del día en que se genera
-            cada cobro. El precio de referencia en dólares de cada plan figura en la página de
-            planes.
+            través de Mercado Pago, a precio fijo. El precio vigente de cada plan figura en la
+            página de planes.
           </li>
           <li>
             Podés cancelar la renovación automática en cualquier momento desde Configuración →
