@@ -1,5 +1,6 @@
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { decidirCambio, resultadoDeCobro, type Evento } from './decision.ts'
+import { firmaValida } from './firma.ts'
 
 // Notificación de Mercado Pago: nunca confiamos en los datos del payload
 // (podrían ser falsificados). Solo usamos el `id` para volver a consultar
@@ -18,14 +19,29 @@ Deno.serve(async (req: Request) => {
   let id = url.searchParams.get('id') ?? url.searchParams.get('data.id')
   let topic = url.searchParams.get('topic') ?? url.searchParams.get('type')
 
+  let dataIdFirma = url.searchParams.get('data.id')
+
   if (req.method === 'POST') {
     try {
       const body = await req.json()
       id = body?.data?.id ?? id
       topic = body?.type ?? topic
+      dataIdFirma = dataIdFirma ?? (body?.data?.id != null ? String(body.data.id) : null)
     } catch {
       // Sin body JSON (IPN legacy por query params): seguimos con la URL.
     }
+  }
+
+  // Si hay secreto configurado, solo se aceptan avisos firmados por Mercado Pago.
+  const secretoWebhook = Deno.env.get('MP_WEBHOOK_SECRET')
+  if (secretoWebhook) {
+    const valida = await firmaValida(
+      secretoWebhook,
+      req.headers.get('x-signature'),
+      req.headers.get('x-request-id'),
+      dataIdFirma
+    )
+    if (!valida) return new Response('firma inválida', { status: 401 })
   }
 
   const esSuscripcion = !topic || topic === 'preapproval' || topic === 'subscription_preapproval'
