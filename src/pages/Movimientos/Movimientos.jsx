@@ -18,6 +18,18 @@ import ImportMovimientosButton from '../../components/ImportMovimientosButton'
 import ReplicarMesButton from '../../components/ReplicarMesButton'
 
 const HOY = new Date().toISOString().slice(0, 10)
+const MES_ACTUAL = HOY.slice(0, 7)
+
+function etiquetaMes(mes) {
+  const [anio, m] = mes.split('-').map(Number)
+  const nombre = new Date(anio, m - 1, 1).toLocaleDateString('es-AR', { month: 'long' })
+  return `${nombre.charAt(0).toUpperCase()}${nombre.slice(1)} ${anio}`
+}
+
+// De lo más reciente a lo más antiguo; a igual fecha, lo cargado último primero.
+function masRecientePrimero(a, b) {
+  return b.fecha.localeCompare(a.fecha) || String(b.created_at ?? '').localeCompare(String(a.created_at ?? ''))
+}
 
 const FORM_INICIAL = {
   tipo: 'ingreso',
@@ -50,9 +62,11 @@ export default function Movimientos() {
   const [filtroTipo, setFiltroTipo] = useState('todos')
   const [filtroEstado, setFiltroEstado] = useState('todos')
   const [filtroMoneda, setFiltroMoneda] = useState('todas')
+  const [filtroMes, setFiltroMes] = useState(MES_ACTUAL)
+  const [incluirPendientes, setIncluirPendientes] = useState(true)
 
   const [mostrarCuentaForm, setMostrarCuentaForm] = useState(false)
-  const [nuevaCuenta, setNuevaCuenta] = useState({ nombre: '', tipo: 'banco', moneda: 'ARS' })
+  const [nuevaCuenta, setNuevaCuenta] = useState({ nombre: '', tipo: 'banco', moneda: 'ARS', saldoInicial: '' })
   const [mostrarCategoriaForm, setMostrarCategoriaForm] = useState(false)
   const [nuevaCategoria, setNuevaCategoria] = useState({ nombre: '', tipo: 'ingreso' })
 
@@ -98,14 +112,24 @@ export default function Movimientos() {
     [cuentas, form.cuentaId]
   )
 
+  const mesesDisponibles = useMemo(() => {
+    const meses = new Set([MES_ACTUAL, ...movimientos.map((m) => m.fecha.slice(0, 7))])
+    return [...meses].sort().reverse()
+  }, [movimientos])
+
   const movimientosFiltrados = useMemo(() => {
-    return movimientos.filter((m) => {
+    return movimientos
+      .filter((m) => {
+      if (filtroMes !== 'todos' && !(incluirPendientes && m.estado === 'pendiente')) {
+        if (!m.fecha.startsWith(filtroMes)) return false
+      }
       if (filtroTipo !== 'todos' && m.tipo !== filtroTipo) return false
       if (filtroEstado !== 'todos' && m.estado !== filtroEstado) return false
       if (filtroMoneda !== 'todas' && m.moneda !== filtroMoneda) return false
       return true
-    })
-  }, [movimientos, filtroTipo, filtroEstado, filtroMoneda])
+      })
+      .sort(masRecientePrimero)
+  }, [movimientos, filtroTipo, filtroEstado, filtroMoneda, filtroMes, incluirPendientes])
 
   async function handleSubmit(e) {
     e.preventDefault()
@@ -207,6 +231,11 @@ export default function Movimientos() {
   async function handleCrearCuenta(e) {
     e.preventDefault()
     if (!nuevaCuenta.nombre) return
+    const saldoInicial = Number(String(nuevaCuenta.saldoInicial || '0').replace(',', '.'))
+    if (Number.isNaN(saldoInicial)) {
+      setError('El saldo inicial tiene que ser un número.')
+      return
+    }
     try {
       const creada = await createCuenta({
         userId: user.id,
@@ -214,10 +243,11 @@ export default function Movimientos() {
         nombre: nuevaCuenta.nombre,
         tipo: nuevaCuenta.tipo,
         moneda: nuevaCuenta.moneda,
+        saldoInicial,
       })
       setCuentas((prev) => [...prev, creada])
       setForm((f) => ({ ...f, cuentaId: creada.id, moneda: creada.moneda }))
-      setNuevaCuenta({ nombre: '', tipo: 'banco', moneda: 'ARS' })
+      setNuevaCuenta({ nombre: '', tipo: 'banco', moneda: 'ARS', saldoInicial: '' })
       setMostrarCuentaForm(false)
     } catch (err) {
       setError(err.message)
@@ -409,6 +439,18 @@ export default function Movimientos() {
                       setNuevaCuenta((c) => ({ ...c, nombre: e.target.value }))
                     }
                   />
+                  <input
+                    className="input-field"
+                    inputMode="decimal"
+                    placeholder="Saldo inicial (opcional)"
+                    value={nuevaCuenta.saldoInicial}
+                    onChange={(e) =>
+                      setNuevaCuenta((c) => ({
+                        ...c,
+                        saldoInicial: e.target.value.replace(/[^0-9.,-]/g, ''),
+                      }))
+                    }
+                  />
                   <div className="flex gap-2">
                     <select
                       className="input-field"
@@ -593,6 +635,19 @@ export default function Movimientos() {
             <h2 className="font-semibold text-white">Historial</h2>
             <div className="flex flex-wrap gap-2">
               <select
+                aria-label="Mes"
+                className="input-field !w-auto text-sm"
+                value={filtroMes}
+                onChange={(e) => setFiltroMes(e.target.value)}
+              >
+                {mesesDisponibles.map((mes) => (
+                  <option key={mes} value={mes}>
+                    {etiquetaMes(mes)}
+                  </option>
+                ))}
+                <option value="todos">Todos los meses</option>
+              </select>
+              <select
                 className="input-field !w-auto text-sm"
                 value={filtroTipo}
                 onChange={(e) => setFiltroTipo(e.target.value)}
@@ -621,6 +676,17 @@ export default function Movimientos() {
               </select>
             </div>
           </div>
+
+          {filtroMes !== 'todos' && (
+            <label className="mt-3 flex items-center gap-2 text-xs text-metal-300">
+              <input
+                type="checkbox"
+                checked={incluirPendientes}
+                onChange={(e) => setIncluirPendientes(e.target.checked)}
+              />
+              Incluir pendientes de otros meses
+            </label>
+          )}
 
           {loading ? (
             <p className="mt-6 text-sm text-metal-400">Cargando…</p>

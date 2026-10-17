@@ -15,7 +15,7 @@ import { useAuth } from '../../context/AuthContext'
 import { useEmpresa } from '../../context/EmpresaContext'
 import { listCuentas } from '../../services/cuentas'
 import { listMovimientos } from '../../services/movimientos'
-import { calcularResumenPorMoneda, calcularSemaforo } from '../../utils/resumen'
+import { calcularResumen, calcularResumenPorMoneda, calcularSemaforo } from '../../utils/resumen'
 import { agruparFlujo } from '../../utils/flujo'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { generarInsightsIA } from '../../services/ia'
@@ -29,7 +29,7 @@ const SEMAFORO_STYLES = {
   rojo: 'bg-danger/10 text-danger border-danger/40',
 }
 
-const NOMBRE_MONEDA = { ARS: 'Pesos ($)', USD: 'Dólares (US$)' }
+const NOMBRE_MONEDA = { ARS: 'Caja en pesos ($)', USD: 'Caja en dólares (US$)' }
 
 export default function Dashboard() {
   const { user, profile } = useAuth()
@@ -51,10 +51,16 @@ export default function Dashboard() {
       .finally(() => setLoading(false))
   }, [empresaActiva?.id])
 
-  const resumenes = useMemo(
-    () => calcularResumenPorMoneda(movimientos, cuentas),
-    [movimientos, cuentas]
-  )
+  // La caja en pesos y la caja en dólares se muestran siempre, aunque una esté vacía.
+  const resumenes = useMemo(() => {
+    const lista = calcularResumenPorMoneda(movimientos, cuentas)
+    for (const moneda of ['ARS', 'USD']) {
+      if (!lista.some((r) => r.moneda === moneda)) {
+        lista.push({ moneda, ...calcularResumen([], []) })
+      }
+    }
+    return lista.sort((a, b) => (a.moneda === 'ARS' ? -1 : b.moneda === 'ARS' ? 1 : 0))
+  }, [movimientos, cuentas])
   const nombre = user?.user_metadata?.nombre
 
   return (
@@ -84,7 +90,7 @@ export default function Dashboard() {
               resumen={resumen}
               movimientos={movimientos.filter((m) => m.moneda === resumen.moneda)}
               cuentas={cuentas.filter((c) => c.moneda === resumen.moneda)}
-              mostrarEtiqueta={resumenes.length > 1}
+              mostrarEtiqueta
             />
           ))}
         </div>
@@ -94,6 +100,30 @@ export default function Dashboard() {
 }
 
 function MonedaSection({ resumen, movimientos, cuentas, mostrarEtiqueta }) {
+  if (movimientos.length === 0 && cuentas.length === 0) {
+    return (
+      <div>
+        {mostrarEtiqueta && (
+          <h2 className="mb-4 font-display text-lg font-semibold text-white">
+            {NOMBRE_MONEDA[resumen.moneda] ?? resumen.moneda}
+          </h2>
+        )}
+        <div className="card">
+          <p className="text-sm text-metal-400">Saldo disponible</p>
+          <p className="mt-2 text-2xl font-semibold text-white">
+            {formatCurrency(0, resumen.moneda)}
+          </p>
+          <p className="mt-2 text-sm text-metal-400">
+            Todavía no tenés cuentas ni movimientos en esta moneda. Creá una cuenta desde{' '}
+            <Link to="/movimientos" className="text-electric-400 hover:text-electric-300">
+              Movimientos
+            </Link>{' '}
+            (con su saldo inicial) para empezar a verla acá.
+          </p>
+        </div>
+      </div>
+    )
+  }
   const semaforo = calcularSemaforo(resumen)
   const { labels, saldos } = useMemo(
     () => agruparFlujo(movimientos, cuentas, 'diario'),
