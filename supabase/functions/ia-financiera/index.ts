@@ -180,6 +180,61 @@ Deno.serve(async (req: Request) => {
     }
     await admin.from('ia_consultas').insert({ user_id: user.id })
 
+    // Carga de datos: convierte el texto pegado de un mail, factura o mensaje en
+    // un movimiento listo para revisar. No guarda nada: lo confirma el usuario.
+    if (modo === 'extraer') {
+      if (!mensaje || typeof mensaje !== 'string') {
+        return new Response(JSON.stringify({ error: 'Pegá el texto a analizar.' }), {
+          status: 400,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        })
+      }
+      const hoyISO = new Date().toISOString().slice(0, 10)
+      const system = `Extraés datos de un movimiento financiero a partir de un texto (mail, factura, recibo o mensaje) escrito en español de Argentina.
+Hoy es ${hoyISO}.
+Respondé ÚNICAMENTE con un objeto JSON válido, sin texto antes ni después, con este formato exacto:
+{"tipo": "ingreso" | "egreso", "descripcion": "string corto", "monto": number, "moneda": "ARS" | "USD", "fecha": "YYYY-MM-DD"}
+Reglas:
+- "egreso" si es algo que hay que pagar (factura recibida, servicio, vencimiento); "ingreso" si es algo que se cobra o se recibió.
+- "monto" es un número positivo sin símbolos ni separadores de miles (usá punto decimal). Si hay varios importes, usá el total a pagar.
+- "fecha" es la fecha de vencimiento o de pago; si no hay ninguna, usá ${hoyISO}.
+- Si el texto no contiene ningún importe, respondé {"error": "No encontré un importe en el texto."}.
+- No inventes datos que no estén en el texto.`
+      const texto = await llamarGroq(accessToken, system, [{ role: 'user', content: mensaje.slice(0, 3000) }], 300)
+      const match = texto.match(/\{[\s\S]*\}/)
+      let dato: any = null
+      try {
+        dato = JSON.parse(match ? match[0] : texto)
+      } catch {
+        dato = null
+      }
+      const monto = Number(dato?.monto)
+      if (
+        !dato ||
+        dato.error ||
+        !(monto > 0) ||
+        (dato.tipo !== 'ingreso' && dato.tipo !== 'egreso') ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(String(dato.fecha ?? ''))
+      ) {
+        return new Response(
+          JSON.stringify({ error: dato?.error ?? 'No pude entender el texto. Revisá que incluya el importe.' }),
+          { status: 422, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        )
+      }
+      return new Response(
+        JSON.stringify({
+          movimiento: {
+            tipo: dato.tipo,
+            descripcion: String(dato.descripcion ?? '').slice(0, 120) || 'Movimiento',
+            monto,
+            moneda: dato.moneda === 'USD' ? 'USD' : 'ARS',
+            fecha: dato.fecha,
+          },
+        }),
+        { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      )
+    }
+
     const { data: empresa } = await supabase
       .from('empresas')
       .select('nombre')

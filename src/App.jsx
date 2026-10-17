@@ -10,6 +10,7 @@ import Hoy from './pages/Hoy/Hoy'
 import Movimientos from './pages/Movimientos/Movimientos'
 import Categorias from './pages/Categorias/Categorias'
 import Flujo from './pages/Flujo/Flujo'
+import Vencimientos from './pages/Vencimientos/Vencimientos'
 import Calendario from './pages/Calendario/Calendario'
 import Clientes from './pages/Clientes/Clientes'
 import Proveedores from './pages/Proveedores/Proveedores'
@@ -46,6 +47,7 @@ export default function App() {
       <Route path="/movimientos" element={withProtection(Movimientos)} />
       <Route path="/categorias" element={withProtection(Categorias)} />
       <Route path="/flujo" element={withProtection(Flujo)} />
+      <Route path="/vencimientos" element={withProtection(Vencimientos)} />
       <Route path="/calendario" element={withProtection(Calendario)} />
       <Route path="/clientes" element={withProtection(Clientes)} />
       <Route path="/proveedores" element={withProtection(Proveedores)} />

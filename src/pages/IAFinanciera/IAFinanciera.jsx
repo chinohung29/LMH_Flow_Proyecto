@@ -9,6 +9,8 @@ const SUGERENCIAS = [
   '¿Cómo vengo con los gastos comparado con los ingresos?',
   '¿Qué clientes me deben plata?',
   '¿Cuáles son mis próximos vencimientos?',
+  '¿Cuánto cobro esta semana?',
+  '¿Qué vence hoy?',
 ]
 
 export default function IAFinanciera() {
