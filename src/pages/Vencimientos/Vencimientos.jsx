@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import AlertasVencimiento from '../../components/AlertasVencimiento'
+import EnviosAutomaticos from '../../components/EnviosAutomaticos'
 import { useAuth } from '../../context/AuthContext'
 import { useEmpresa } from '../../context/EmpresaContext'
 import { listCuentas } from '../../services/cuentas'
@@ -167,6 +168,7 @@ export default function Vencimientos() {
       ) : (
         <div className="space-y-6">
           <AlertasVencimiento movimientos={movimientos} dias={7} />
+          <EnviosAutomaticos />
 
           <div className="card">
             <div className="flex flex-wrap items-end justify-between gap-3">
