@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import DashboardLayout from '../../components/DashboardLayout'
 import { useAuth } from '../../context/AuthContext'
 import { useEmpresa } from '../../context/EmpresaContext'
-import { listCuentas, createCuenta } from '../../services/cuentas'
+import { listCuentas, createCuenta, updateSaldoInicial } from '../../services/cuentas'
 import { listCategorias, createCategoria } from '../../services/categorias'
 import { listClientes } from '../../services/clientes'
 import { listProveedores } from '../../services/proveedores'
@@ -67,6 +67,8 @@ export default function Movimientos() {
 
   const [mostrarCuentaForm, setMostrarCuentaForm] = useState(false)
   const [nuevaCuenta, setNuevaCuenta] = useState({ nombre: '', tipo: 'banco', moneda: 'ARS', saldoInicial: '' })
+  const [editandoSaldo, setEditandoSaldo] = useState(false)
+  const [saldoEditado, setSaldoEditado] = useState('')
   const [mostrarCategoriaForm, setMostrarCategoriaForm] = useState(false)
   const [nuevaCategoria, setNuevaCategoria] = useState({ nombre: '', tipo: 'ingreso' })
 
@@ -249,6 +251,21 @@ export default function Movimientos() {
       setForm((f) => ({ ...f, cuentaId: creada.id, moneda: creada.moneda }))
       setNuevaCuenta({ nombre: '', tipo: 'banco', moneda: 'ARS', saldoInicial: '' })
       setMostrarCuentaForm(false)
+    } catch (err) {
+      setError(err.message)
+    }
+  }
+
+  async function handleGuardarSaldo() {
+    const saldo = Number(String(saldoEditado || '0').replace(',', '.'))
+    if (Number.isNaN(saldo)) {
+      setError('El saldo inicial tiene que ser un número.')
+      return
+    }
+    try {
+      const actualizada = await updateSaldoInicial(cuentaSeleccionada.id, saldo)
+      setCuentas((prev) => prev.map((c) => (c.id === actualizada.id ? actualizada : c)))
+      setEditandoSaldo(false)
     } catch (err) {
       setError(err.message)
     }
@@ -486,6 +503,7 @@ export default function Movimientos() {
                   value={form.cuentaId}
                   onChange={(e) => {
                     const cuentaId = e.target.value
+                    setEditandoSaldo(false)
                     const cta = cuentas.find((c) => c.id === cuentaId)
                     setForm((f) => ({ ...f, cuentaId, moneda: cta ? cta.moneda : f.moneda }))
                   }}
@@ -497,6 +515,46 @@ export default function Movimientos() {
                     </option>
                   ))}
                 </select>
+              )}
+              {!mostrarCuentaForm && cuentaSeleccionada && (
+                <div className="mt-1.5 text-xs text-metal-400">
+                  {editandoSaldo ? (
+                    <div className="flex gap-2">
+                      <input
+                        className="input-field"
+                        inputMode="decimal"
+                        placeholder="Saldo inicial"
+                        value={saldoEditado}
+                        onChange={(e) => setSaldoEditado(e.target.value.replace(/[^0-9.,-]/g, ''))}
+                      />
+                      <button type="button" className="btn-secondary !px-3" onClick={handleGuardarSaldo}>
+                        Guardar
+                      </button>
+                      <button
+                        type="button"
+                        className="btn-secondary !px-3"
+                        onClick={() => setEditandoSaldo(false)}
+                      >
+                        ×
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      Saldo inicial:{' '}
+                      {formatCurrency(cuentaSeleccionada.saldo_inicial || 0, cuentaSeleccionada.moneda)}{' '}
+                      <button
+                        type="button"
+                        className="text-electric-400 hover:text-electric-300"
+                        onClick={() => {
+                          setSaldoEditado(String(cuentaSeleccionada.saldo_inicial ?? 0))
+                          setEditandoSaldo(true)
+                        }}
+                      >
+                        Editar
+                      </button>
+                    </>
+                  )}
+                </div>
               )}
             </div>
 

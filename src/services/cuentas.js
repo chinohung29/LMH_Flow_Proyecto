@@ -34,6 +34,17 @@ export async function createCuenta({
   return data
 }
 
+export async function updateSaldoInicial(id, saldoInicial) {
+  const { data, error } = await supabase
+    .from('cuentas')
+    .update({ saldo_inicial: saldoInicial })
+    .eq('id', id)
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
 export async function deleteCuenta(id) {
   const { error } = await supabase.from('cuentas').delete().eq('id', id)
   if (error) throw error
