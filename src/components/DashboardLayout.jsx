@@ -10,6 +10,7 @@ const NAV_ITEMS = [
   { to: '/movimientos', label: 'Movimientos', icon: '💸' },
   { to: '/categorias', label: 'Categorías', icon: '🏷️' },
   { to: '/flujo', label: 'Flujo de caja', icon: '📈' },
+  { to: '/vencimientos', label: 'Vencimientos', icon: '⏰' },
   { to: '/calendario', label: 'Calendario', icon: '🗓️' },
   { to: '/clientes', label: 'Clientes', icon: '🧑‍💼' },
   { to: '/proveedores', label: 'Proveedores', icon: '📦' },

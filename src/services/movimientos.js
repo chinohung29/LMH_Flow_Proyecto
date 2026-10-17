@@ -1,7 +1,7 @@
 import { supabase } from './supabaseClient'
 
 const SELECT_CON_RELACIONES =
-  '*, cuenta:cuentas(id,nombre,tipo,moneda), categoria:categorias(id,nombre,tipo), cliente:clientes(id,nombre), proveedor:proveedores(id,nombre)'
+  '*, cuenta:cuentas(id,nombre,tipo,moneda), categoria:categorias(id,nombre,tipo), cliente:clientes(id,nombre,email,telefono), proveedor:proveedores(id,nombre)'
 
 export async function listMovimientos({
   empresaId,

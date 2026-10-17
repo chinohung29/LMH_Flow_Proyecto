@@ -16,6 +16,9 @@ import { formatCurrency, formatDate } from '../../utils/format'
 import ExportMovimientosButton from '../../components/ExportMovimientosButton'
 import ImportMovimientosButton from '../../components/ImportMovimientosButton'
 import ReplicarMesButton from '../../components/ReplicarMesButton'
+import { extraerMovimientoIA } from '../../services/ia'
+import { tienePlanLimitado } from '../../utils/planes'
+import RecordarCobro from '../../components/RecordarCobro'
 
 const HOY = new Date().toISOString().slice(0, 10)
 const MES_ACTUAL = HOY.slice(0, 7)
@@ -45,7 +48,7 @@ const FORM_INICIAL = {
 }
 
 export default function Movimientos() {
-  const { user } = useAuth()
+  const { user, profile } = useAuth()
   const { empresaActiva } = useEmpresa()
   const [cuentas, setCuentas] = useState([])
   const [categorias, setCategorias] = useState([])
@@ -67,6 +70,9 @@ export default function Movimientos() {
 
   const [mostrarCuentaForm, setMostrarCuentaForm] = useState(false)
   const [nuevaCuenta, setNuevaCuenta] = useState({ nombre: '', tipo: 'banco', moneda: 'ARS', saldoInicial: '' })
+  const [mostrarTexto, setMostrarTexto] = useState(false)
+  const [textoPegado, setTextoPegado] = useState('')
+  const [leyendoTexto, setLeyendoTexto] = useState(false)
   const [editandoSaldo, setEditandoSaldo] = useState(false)
   const [saldoEditado, setSaldoEditado] = useState('')
   const [mostrarCategoriaForm, setMostrarCategoriaForm] = useState(false)
@@ -256,6 +262,39 @@ export default function Movimientos() {
     }
   }
 
+  async function handleLeerTexto() {
+    if (!textoPegado.trim()) return
+    setLeyendoTexto(true)
+    setError('')
+    try {
+      const mov = await extraerMovimientoIA(textoPegado)
+      const cuentaDeMoneda = cuentas.find((c) => c.moneda === mov.moneda)
+      setForm((f) => ({
+        ...f,
+        tipo: mov.tipo,
+        descripcion: mov.descripcion,
+        monto: String(mov.monto).replace('.', ','),
+        fecha: mov.fecha,
+        moneda: mov.moneda,
+        categoriaId: '',
+        clienteId: '',
+        proveedorId: '',
+        estado: 'pendiente',
+        cuentaId:
+          cuentas.find((c) => c.id === f.cuentaId)?.moneda === mov.moneda
+            ? f.cuentaId
+            : (cuentaDeMoneda?.id ?? ''),
+      }))
+      setEditandoId(null)
+      setTextoPegado('')
+      setMostrarTexto(false)
+    } catch (err) {
+      setError(err.message)
+    } finally {
+      setLeyendoTexto(false)
+    }
+  }
+
   async function handleGuardarSaldo() {
     const saldo = Number(String(saldoEditado || '0').replace(',', '.'))
     if (Number.isNaN(saldo)) {
@@ -333,6 +372,42 @@ export default function Movimientos() {
           <h2 className="font-semibold text-white">
             {editandoId ? 'Editar movimiento' : 'Nuevo movimiento'}
           </h2>
+          <div className="mt-3">
+            <button
+              type="button"
+              className="text-xs text-electric-400 hover:text-electric-300"
+              onClick={() => setMostrarTexto((v) => !v)}
+            >
+              {mostrarTexto ? 'Cerrar' : '✨ Cargar desde un mail o factura (pegar texto)'}
+            </button>
+            {mostrarTexto &&
+              (tienePlanLimitado(profile?.plan) ? (
+                <p className="mt-2 text-xs text-metal-400">
+                  Leer textos con IA es una función del plan Platinum.
+                </p>
+              ) : (
+                <div className="mt-2 space-y-2">
+                  <textarea
+                    className="input-field min-h-[6rem]"
+                    maxLength={3000}
+                    placeholder="Pegá acá el texto del mail, la factura o el mensaje…"
+                    value={textoPegado}
+                    onChange={(e) => setTextoPegado(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    className="btn-secondary w-full text-sm"
+                    onClick={handleLeerTexto}
+                    disabled={leyendoTexto || !textoPegado.trim()}
+                  >
+                    {leyendoTexto ? 'Leyendo…' : 'Completar el formulario'}
+                  </button>
+                  <p className="text-xs text-metal-400">
+                    Revisá los datos antes de guardar: no se guarda nada hasta que toques "Agregar movimiento".
+                  </p>
+                </div>
+              ))}
+          </div>
           <form onSubmit={handleSubmit} className="mt-4 space-y-3">
             <div className="flex rounded-lg border border-metal-600 p-1">
               {['ingreso', 'egreso'].map((tipo) => (
@@ -767,6 +842,7 @@ export default function Movimientos() {
                         {m.cliente?.nombre ? ` · ${m.cliente.nombre}` : ''}
                         {m.proveedor?.nombre ? ` · ${m.proveedor.nombre}` : ''}
                       </p>
+                      <RecordarCobro movimiento={m} />
                       <button
                         onClick={() => toggleEstado(m)}
                         className={`mt-1.5 rounded-full px-2.5 py-0.5 text-xs font-medium ${
@@ -825,7 +901,12 @@ export default function Movimientos() {
                     {movimientosFiltrados.map((m) => (
                       <tr key={m.id} className="border-b border-metal-800">
                         <td className="py-2.5 pr-3 text-metal-300">{formatDate(m.fecha)}</td>
-                        <td className="py-2.5 pr-3 text-white">{m.descripcion}</td>
+                        <td className="py-2.5 pr-3 text-white">
+                          {m.descripcion}
+                          <div>
+                            <RecordarCobro movimiento={m} />
+                          </div>
+                        </td>
                         <td className="py-2.5 pr-3 text-metal-300">
                           {m.categoria?.nombre ?? '—'}
                         </td>

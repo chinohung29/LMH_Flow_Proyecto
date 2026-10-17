@@ -20,6 +20,9 @@ import { agruparFlujo } from '../../utils/flujo'
 import { formatCurrency, formatDate } from '../../utils/format'
 import { generarInsightsIA } from '../../services/ia'
 import { tienePlanLimitado } from '../../utils/planes'
+import AlertasVencimiento from '../../components/AlertasVencimiento'
+import PreguntasRapidas from '../../components/PreguntasRapidas'
+import ResumenSemanal from '../../components/ResumenSemanal'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Tooltip, Filler)
 
@@ -84,6 +87,9 @@ export default function Dashboard() {
         <p className="text-sm text-metal-400">Cargando…</p>
       ) : (
         <div className="space-y-8">
+          <AlertasVencimiento movimientos={movimientos} compacto />
+          <ResumenSemanal movimientos={movimientos} cuentas={cuentas} />
+          <PreguntasRapidas movimientos={movimientos} cuentas={cuentas} />
           {resumenes.map((resumen) => (
             <MonedaSection
               key={resumen.moneda}

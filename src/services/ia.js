@@ -19,3 +19,8 @@ export async function generarInsightsIA() {
   const data = await invocar({ modo: 'insights' })
   return data.insights
 }
+
+export async function extraerMovimientoIA(texto) {
+  const data = await invocar({ modo: 'extraer', mensaje: texto })
+  return data.movimiento
+}
