@@ -34,6 +34,10 @@ Deno.serve(async (req: Request) => {
 
   // Si hay secreto configurado, solo se aceptan avisos firmados por Mercado Pago.
   const secretoWebhook = Deno.env.get('MP_WEBHOOK_SECRET')
+  if (!secretoWebhook) {
+    // Sin secreto los avisos no se pueden autenticar (igual se re-consulta a Mercado Pago, pero conviene firmarlos).
+    console.warn('mp-webhook: MP_WEBHOOK_SECRET no está configurado; aviso sin verificar firma')
+  }
   if (secretoWebhook) {
     const valida = await firmaValida(
       secretoWebhook,
